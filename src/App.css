@@ -1,38 +1,209 @@
-.App {
+/* General Styles */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  margin: 0;
+  padding: 0;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+h1 {
+  color: #333;
+  margin-top: 20px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+/* Container Styles */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* Button Styles */
+button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  margin: 5px;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Character Selection Styles */
+.character-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.character-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  text-align: center;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  padding: 10px;
+  width: 200px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.character-item > img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.character-item h2 {
+  margin: 10px 0 5px;
+}
+
+.character-item p {
+  margin: 5px 0;
+}
+
+/* Battle Menu Styles */
+.battle-menu {
+  margin-top: 20px;
+}
+
+.battle-space {
+  display: flex;
+  justify-content: space-between;
+}
+
+.battle-menu p {
+  font-size: 18px;
+  margin: 10px 0;
+}
+
+/* Health Styles */
+.health {
+  font-size: 18px;
+  color: black;
+  transition: color .1s; /* Smooth transition for color changes */
+}
+
+.health.red {
+  animation: flashRed .2s forwards; /* Animation for red flash */
+}
+
+@keyframes flashRed {
+  0% {
+    color: red;
+  }
+  100% {
+    color: black;
+  }
+}
+
+.health.purple {
+  animation: flashPurple .2s forwards; /* Animation for red flash */
+}
+
+@keyframes flashPurple {
+  0% {
+    color: rgb(255, 0, 255);
+  }
+  100% {
+    color: black;
+  }
+}
+
+.health.green {
+  animation: flashGreen .2s forwards; /* Animation for green flash */
+}
+
+@keyframes flashGreen {
+  0% {
+    color: lightgreen;
+  }
+  100% {
+    color: black;
+  }
+}
+/* End Battle Styles */
+.end-battle {
+  margin-top: 20px;
+}
+
+.end-battle p {
+  font-size: 24px;
+  color: #d9534f;
+}
+
+.character-item.active-turn {
+  border: 2px solid #000000;
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.user-stats-display {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: white;
+  color: black;
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  z-index: 1000;
+}
+
+.user-stats-display button {
+  margin-top: 10px;
+}
+
+.status-effects {
+  display: flex;
+  gap: 4px; /* Reduced gap between status effects */
+  flex-wrap: wrap; /* Allows status effects to wrap to the next line */
+}
+
+.status-effect-item {
+  position: relative;
+  width: 30px;  /* Smaller fixed width for the status effect item */
+  height: 30px; /* Smaller fixed height for the status effect item */
+}
+
+.status-effect-wrapper {
+  position: relative;
+  width: 100%;  /* Ensure the wrapper takes full size of the item */
+  height: 100%;
+}
+
+.status-effect-image {
+  width: 100%; /* Set image to fit within the wrapper */
+  height: 100%;
+  object-fit: contain; /* Ensure the image fits inside without cropping */
+  border-radius: 4px; /* Rounded corners */
+  border: 1px solid #ccc;
+}
+
+.status-effect-duration {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  font-size: 10px;
+  padding: 1px 2px;
+  border-radius: 2px;
 }
