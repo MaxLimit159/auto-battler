@@ -290,7 +290,9 @@ function App() {
                             className="status-effect-image"
                             title={effect.description}
                           />
-                          <span className="status-effect-duration">{effect.duration}</span>
+                          <span className="status-effect-duration">
+                            {effect.duration === null ? effect.stackCount : effect.duration}
+                          </span>
                         </div>
                       </div>
                     ))
