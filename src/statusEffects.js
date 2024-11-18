@@ -12,12 +12,13 @@ export const statusEffects = {
       image: "/StatusEffectImage/poison.png",
       description: "Takes 10% of max health as damage on turn.", 
       duration: 2,
+      stackCount: null,
       effect: (setEntity, setEntityHealthColor, stackCount, deathCheck) => {
         return new Promise((resolve) => {
           if (deathCheck !== true) {
             setEntity(prevEntity => {
               // Calculate total damage based on stackCount
-              const totalDamage = prevEntity.maxHealth * 0.1 * stackCount;
+              const totalDamage = prevEntity.maxHealth * 0.05 * stackCount;
               const newHealth = prevEntity.health - totalDamage;
       
               console.log(prevEntity.name + " takes " + totalDamage + " as poison damage from " + stackCount + " stack(s)!");
@@ -36,6 +37,18 @@ export const statusEffects = {
             }, 0); // Ensure that resolve happens after state update because deathCheck is set inside it
           }
         });
+      }
+    },
+    soul: { 
+      name: "Soul", 
+      image: "/StatusEffectImage/soul.png",
+      description: "Used to launch powerful attacks.", 
+      duration: null,
+      stackCount: 1,
+      effect: (setEntity, setEntityHealthColor, stackCount, deathCheck) => {
+        return new Promise((resolve) => {
+          resolve(deathCheck);
+        })
       }
     }
   };

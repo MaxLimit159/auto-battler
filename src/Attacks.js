@@ -73,13 +73,14 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
     //Reduce the durration of all status effect on the character matching the currently processing statusEffectCount
     for (const status_effect of character.status_effects){
       if(status_effect_stack.name === status_effect.name){
+        if(status_effect.duration !== null){
+          // Reduce duration by 1 after effect is applied
+          status_effect.duration -= 1;
 
-        // Reduce duration by 1 after effect is applied
-        status_effect.duration -= 1;
-
-        // Check if the duration is zero or below, and mark it for removal
-        if (status_effect.duration <= 0) {
-          effectsToRemove.push(status_effect);
+          // Check if the duration is zero or below, and mark it for removal
+          if (status_effect.duration <= 0) {
+            effectsToRemove.push(status_effect);
+          }
         }
       }
     }
@@ -106,9 +107,28 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
 //Function to give statusEffects to character
 const inflictStatusEffects = (setEntity, buffName) => {
   const statusEffect = { ...statusEffects[buffName] }; // Copy the buff info
-  
+
   setEntity(prevEntity => {
-    const updatedStatusEffects = [...prevEntity.status_effects, statusEffect];
+    const updatedStatusEffects = [...prevEntity.status_effects];
+
+    // Check if the effect already exists
+    const existingEffect = updatedStatusEffects.find(
+      effect => effect.name === statusEffect.name
+    );
+
+    if (existingEffect) {
+      if (statusEffect.stackCount !== null) {
+        // Increment stackCount for stackable effects
+        existingEffect.stackCount++;
+      } else if (statusEffect.duration !== null) {
+        // Add another instance for duration-based effects
+        updatedStatusEffects.push({ ...statusEffect });
+      }
+    } else {
+      // Effect does not exist; add it
+      updatedStatusEffects.push({ ...statusEffect });
+    }
+
     return { ...prevEntity, status_effects: updatedStatusEffects };
   });
 };
@@ -147,12 +167,15 @@ const doDamage = async (attacker, target, damage, setPlayer, endGame, setEnemyHe
       setPlayer(prevPlayer => {
         const healedHealth = prevPlayer.health + damage / 2;
         console.log(`Player healing: ${prevPlayer.health} + ${damage / 2} = ${Math.min(healedHealth, prevPlayer.maxHealth)}`);
-        flashHealthColor('green', setPlayerHealthColor);
+        flashHealthColor('lightblue', setPlayerHealthColor);
         return { ...prevPlayer, health: Math.min(healedHealth, prevPlayer.maxHealth) };
       });
     }
     if (attackerPassive.includes('Poison Tip')) {
       inflictStatusEffects(setEnemy, 'poison');
+    }
+    if (attackerPassive.includes('Soul Absorbion')) {
+      inflictStatusEffects(setPlayer, 'soul');
     }
   } else if (target === 'Player') {
     setPlayer(prevPlayer => {
@@ -168,17 +191,35 @@ const doDamage = async (attacker, target, damage, setPlayer, endGame, setEnemyHe
       setEnemy(prevEnemy => {
         const healedHealth = prevEnemy.health + damage / 2;
         console.log(`Enemy healing: ${prevEnemy.health} + ${damage / 2} = ${Math.min(healedHealth, prevEnemy.maxHealth)}`);
-        flashHealthColor('green', setEnemyHealthColor);
+        flashHealthColor('lightblue', setEnemyHealthColor);
         return { ...prevEnemy, health: Math.min(healedHealth, prevEnemy.maxHealth) };
       });
     }
     if (attackerPassive.includes('Poison Tip')) {
       inflictStatusEffects(setPlayer, 'poison');
     }
+    if (attackerPassive.includes('Soul Absorbion')) {
+      inflictStatusEffects(setEnemy, 'soul');
+    }
   }
   return true;
 };
 
+const doHeal = async (attacker, target, damage, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded) => {
+  if (target === 'Enemy') {
+    setPlayer(prevPlayer => {
+      const newHealth = prevPlayer.health + damage;
+      flashHealthColor('lightblue', setPlayerHealthColor);
+      return { ...prevPlayer, health: Math.min(newHealth, prevPlayer.maxHealth) };
+    });
+  } else if (target === 'Player') {
+    setEnemy(prevEnemy => {
+      const newHealth = prevEnemy.health + damage;
+      flashHealthColor('lightblue', setEnemyHealthColor);
+      return { ...prevEnemy, health: Math.min(newHealth, prevEnemy.maxHealth) };
+    });
+  }
+}
 // Define attack functions
 const basicAttack = async (attacker, target, damage, setAnimation, ...args) => {
   if (target === 'Player') {
@@ -200,13 +241,30 @@ const doubleAttack = async (attacker, target, damage, setAnimation, ...args) => 
   await basicAttack(attacker, target, damage, setAnimation, ...args);
   setAnimation(null);
   await new Promise((resolve) => setTimeout(resolve, 0));
-  await basicAttack(attacker, target, damage, setAnimation, ...args);
+  await basicAttack(attacker, target, damage/2, setAnimation, ...args);
 };
 
+const soulBarrage = async (attacker, target, damage, setAnimation, ...args) => {
+  await basicAttack(attacker, target, damage, setAnimation, ...args);
+  await basicHeal(attacker, target, damage, setAnimation, ...args);
+  setAnimation(null);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await basicAttack(attacker, target, damage, setAnimation, ...args);
+  await basicHeal(attacker, target, damage, setAnimation, ...args);
+  setAnimation(null);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await basicAttack(attacker, target, damage, setAnimation, ...args);
+  await basicHeal(attacker, target, damage, setAnimation, ...args);
+};
+
+const basicHeal = async (attacker, target, damage, setAnimation, ...args) => {
+  await doHeal(attacker, target, damage, ...args);
+}
 // Store attack functions in an object
 const attackFunctions = {
   basicAttack,
   doubleAttack,
+  soulBarrage,
 };
 
 function Attack({
@@ -233,9 +291,25 @@ function Attack({
       if (turn === 'Player') {
         // let deathCheckPlayer = false;
         async function playerAttacks(){
-          const skillId = player.skills[0];
-          if (attackFunctions[skillId]) {
-            await attackFunctions[skillId](player, 'Enemy', player.damage,setPlayerAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+          const soulEffect = player.status_effects.find(effect => effect.name === "Soul");
+          if(soulEffect && soulEffect.stackCount >= 5)
+          {
+            // Reduce Soul stacks after using soulBarrage
+            setPlayer(prevPlayer => {
+              const updatedEffects = prevPlayer.status_effects.map(effect => {
+                if (effect.name === "Soul") {
+                  return { ...effect, stackCount: effect.stackCount - 5 };
+                }
+                return effect;
+              });
+              return { ...prevPlayer, status_effects: updatedEffects };
+            });
+            await attackFunctions.soulBarrage(player, 'Enemy', player.damage,setPlayerAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+          }else{
+            const skillId = player.skills[0];
+            if (attackFunctions[skillId]) {
+              await attackFunctions[skillId](player, 'Enemy', player.damage,setPlayerAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+            }
           }
           setTurn('Enemy');
         }
@@ -260,11 +334,27 @@ function Attack({
         }
       } else if (turn === 'Enemy') {
         async function enemyAttacks(){
-          const skillId = enemy.skills[0];
-          if (attackFunctions[skillId]) {
-            await attackFunctions[skillId](enemy, 'Player', enemy.damage,setEnemyAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
-          }
-          setTurn('Player');
+          const soulEffect = enemy.status_effects.find(effect => effect.name === "Soul");
+          if(soulEffect && soulEffect.stackCount >= 5)
+            {
+              // Reduce Soul stacks after using soulBarrage
+              setEnemy(prevEnemy => {
+                const updatedEffects = prevEnemy.status_effects.map(effect => {
+                  if (effect.name === "Soul") {
+                    return { ...effect, stackCount: effect.stackCount - 5 };
+                  }
+                  return effect;
+                });
+                return { ...prevEnemy, status_effects: updatedEffects };
+              });
+              await attackFunctions.soulBarrage(enemy, 'Player', enemy.damage,setEnemyAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+            }else{
+              const skillId = enemy.skills[0];
+              if (attackFunctions[skillId]) {
+                await attackFunctions[skillId](enemy, 'Player', enemy.damage,setEnemyAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+              }
+            }
+            setTurn('Player');
         }
         //Check if target has status effect
         if(enemy.status_effects.length > 0){

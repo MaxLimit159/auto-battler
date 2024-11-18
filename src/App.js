@@ -56,7 +56,7 @@ function App() {
   const animationVarriants = useMemo(() => animations, []);//Note to self: animation is memorized with no dependencies so dont try to change it with codes
   const [enemyQueue, setEnemyQueue] = useState(() => 
     [
-      { name: 'zombie', level: 1 },
+      { name: 'necromancer', level: 1 },
       { name: 'ghost', level: 1 },
       { name: 'necromancer', level: 1 }
     ].map(({ name, level }) => createCharacter(name, level))
@@ -290,7 +290,9 @@ function App() {
                             className="status-effect-image"
                             title={effect.description}
                           />
-                          <span className="status-effect-duration">{effect.duration}</span>
+                          <span className="status-effect-duration">
+                            {effect.duration === null ? effect.stackCount : effect.duration}
+                          </span>
                         </div>
                       </div>
                     ))

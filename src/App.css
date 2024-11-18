@@ -94,51 +94,6 @@ button:disabled {
   margin: 10px 0;
 }
 
-/* Health Styles */
-.health {
-  font-size: 18px;
-  color: black;
-  transition: color .1s; /* Smooth transition for color changes */
-}
-
-.health.red {
-  animation: flashRed .2s forwards; /* Animation for red flash */
-}
-
-@keyframes flashRed {
-  0% {
-    color: red;
-  }
-  100% {
-    color: black;
-  }
-}
-
-.health.purple {
-  animation: flashPurple .2s forwards; /* Animation for red flash */
-}
-
-@keyframes flashPurple {
-  0% {
-    color: rgb(255, 0, 255);
-  }
-  100% {
-    color: black;
-  }
-}
-
-.health.green {
-  animation: flashGreen .2s forwards; /* Animation for green flash */
-}
-
-@keyframes flashGreen {
-  0% {
-    color: lightgreen;
-  }
-  100% {
-    color: black;
-  }
-}
 /* End Battle Styles */
 .end-battle {
   margin-top: 20px;
