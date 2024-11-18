@@ -1,16 +1,48 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { statusEffects } from './statusEffects.js';
+import { animations } from './animations'
 const TURN_LENGTH = 1000;
+const animationVarriants = animations;
 // Function to flash health color
 const flashHealthColor = (color, setEntityHealthColor) => {
   setEntityHealthColor(color);
   setTimeout(() => setEntityHealthColor(''), TURN_LENGTH / 5);
 };
+//Used for handling level up
+const calculateExperienceForNextLevel = (level) => level * 100;
+const getLevelUppedStats = (character) => {
+  const levelMultiplier = 1 + (character.level - 1) * 0.05;
+
+  // Apply the scaling and round down each stat
+  character.maxHealth = Math.floor(character.maxHealth * levelMultiplier);
+  character.health = Math.floor(character.maxHealth);
+  character.damage = Math.floor(character.damage * levelMultiplier);
+  character.speed = Math.floor(character.speed * levelMultiplier);
+
+  return character;
+};
 //Handles game ending logics
-const handleGameEnd = (winningSide, updateMoney, moneyDrop, endGame, gameEnded) => {
+const handleGameEnd = (winningSide, updateMoney, updateCharacterLevel, moneyDrop, experienceDrop, playerCharacter, setPlayer, endGame, gameEnded) => {
   gameEnded.current = true; // Set game ended state
   if (winningSide === 'Player' && moneyDrop !== undefined) {
-    updateMoney(moneyDrop);
+    if(moneyDrop !== undefined){
+      updateMoney(moneyDrop);
+    }
+    if(experienceDrop !== undefined){
+      let totalExp = playerCharacter.experience + experienceDrop;
+      let totalLevel = playerCharacter.level;
+      let levelUppedCharacter = playerCharacter;
+      while(totalExp >= calculateExperienceForNextLevel(playerCharacter.level)){
+        totalExp -= calculateExperienceForNextLevel(playerCharacter.level);
+        totalLevel += 1;
+        levelUppedCharacter = getLevelUppedStats(playerCharacter);
+        console.log(playerCharacter.name + " leveled up!");
+      }
+      setPlayer(prevPlayer => ({
+        ...prevPlayer, experience: totalExp, level: totalLevel, health: levelUppedCharacter.health, maxHealth: levelUppedCharacter.maxHealth, speed: levelUppedCharacter.speed, damage: levelUppedCharacter.damage
+      }));
+      updateCharacterLevel(playerCharacter.id, totalLevel, totalExp);
+    }
   }
   endGame(winningSide);
   console.log(`Game ends. ${winningSide} wins`);
@@ -34,7 +66,8 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
     deathCheck = await status_effect_stack.effect(
       setEntity,
       setEntityHealthColor,
-      status_effect_stack.stackCount
+      status_effect_stack.stackCount,
+      deathCheck,
     );
 
     //Reduce the durration of all status effect on the character matching the currently processing statusEffectCount
@@ -67,7 +100,6 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
     ...prevEntity,
     status_effects: [...character.status_effects],
   }));
-
   return deathCheck;
 };
 
@@ -93,20 +125,19 @@ const calculateDamage = (damage, targetPassive, attackerPassive) => {
 };
 
 // Function to handle damage
-const doDamage = (attacker, target, damage, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, gameEnded) => {
-  if (gameEnded.current) return;
+const doDamage = async (attacker, target, damage, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded) => {
+  if (gameEnded.current) return false;
   
-  const targetPassive = target === 'player' ? playerPassives : enemyPassives;
-  const attackerPassive = target === 'player' ? enemyPassives : playerPassives;
+  const targetPassive = target === 'Player' ? playerPassives : enemyPassives;
+  const attackerPassive = target === 'Player' ? enemyPassives : playerPassives;
 
   damage = calculateDamage(damage, targetPassive, attackerPassive);
-
   // Active effects after calculating final damage
-  if (target === 'enemy') {
+  if (target === 'Enemy') {
     setEnemy(prevEnemy => {
       const newHealth = prevEnemy.health - damage;
       if (newHealth <= 0) {
-        handleGameEnd('Player', updateMoney, prevEnemy.money_drop, endGame, gameEnded);
+        handleGameEnd('Player', updateMoney, updateCharacterLevel, prevEnemy.money_drop, prevEnemy.experience_drop, attacker, setPlayer, endGame, gameEnded);
       }
       flashHealthColor('red', setEnemyHealthColor);
       return { ...prevEnemy, health: Math.max(newHealth, 0) };
@@ -123,11 +154,11 @@ const doDamage = (attacker, target, damage, setPlayer, endGame, setEnemyHealthCo
     if (attackerPassive.includes('Poison Tip')) {
       inflictStatusEffects(setEnemy, 'poison');
     }
-  } else if (target === 'player') {
+  } else if (target === 'Player') {
     setPlayer(prevPlayer => {
       const newHealth = prevPlayer.health - damage;
       if (newHealth <= 0) {
-        handleGameEnd('Enemy', updateMoney, undefined, endGame, gameEnded);
+        handleGameEnd('Enemy', updateMoney, updateCharacterLevel, undefined, undefined, undefined, undefined, endGame, gameEnded);
       }
       flashHealthColor('red', setPlayerHealthColor);
       return { ...prevPlayer, health: Math.max(newHealth, 0) };
@@ -145,18 +176,31 @@ const doDamage = (attacker, target, damage, setPlayer, endGame, setEnemyHealthCo
       inflictStatusEffects(setPlayer, 'poison');
     }
   }
+  return true;
 };
 
 // Define attack functions
-const basicAttack = (attacker, target, damage, ...args) => {
-  doDamage(attacker, target, damage, ...args);
+const basicAttack = async (attacker, target, damage, setAnimation, ...args) => {
+  if (target === 'Player') {
+    setAnimation(animationVarriants.enemyAttack);
+  } else {
+    setAnimation(animationVarriants.playerAttack);
+  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      doDamage(attacker, target, damage, ...args);
+    }, 150);
+    setTimeout(() => {
+      resolve();
+    }, 300); //Both timeout runs sync-ly so 300 but doDamage runs after the first 150 which is the impact frame
+  });
 };
 
-const doubleAttack = (attacker, target, damage, ...args) => {
-  basicAttack(attacker, target, damage, ...args);
-  setTimeout(() => {
-    basicAttack(attacker, target, damage, ...args);
-  }, TURN_LENGTH / 2);
+const doubleAttack = async (attacker, target, damage, setAnimation, ...args) => {
+  await basicAttack(attacker, target, damage, setAnimation, ...args);
+  setAnimation(null);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await basicAttack(attacker, target, damage, setAnimation, ...args);
 };
 
 // Store attack functions in an object
@@ -167,6 +211,7 @@ const attackFunctions = {
 
 function Attack({
   updateMoney,
+  updateCharacterLevel,
   player,
   enemy,
   turn,
@@ -177,42 +222,68 @@ function Attack({
   setEnemy,
   setPlayerHealthColor,
   setEnemyHealthColor,
-  setTimeout,
+  setPlayerAnimation,
+  setEnemyAnimation,
   playerPassives,
   enemyPassives,
   gameEnded
 }) {
   useEffect(() => {
     const handleAttack = async () => {
-      if (turn === 'player') {
-        let deathCheckPlayer = await applyStatusEffects(player, setPlayer, setPlayerHealthColor, "Enemy", endGame, updateMoney, gameEnded);
-        //Wait for status effects to take effect
-        console.log("Player death from status: ",deathCheckPlayer);
-        if(deathCheckPlayer !== true){
-          setTimeout(() => {
-            const skillId = player.skills[0];
-            if (attackFunctions[skillId]) {
-              attackFunctions[skillId](player, 'enemy', player.damage, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, gameEnded);
-            }
-            setTimeout(() => setTurn('enemy'), TURN_LENGTH / 2);
-          }, TURN_LENGTH / 2);
-        } else{
-          handleGameEnd('Enemy', updateMoney, undefined, endGame, gameEnded);
+      if (turn === 'Player') {
+        // let deathCheckPlayer = false;
+        async function playerAttacks(){
+          const skillId = player.skills[0];
+          if (attackFunctions[skillId]) {
+            await attackFunctions[skillId](player, 'Enemy', player.damage,setPlayerAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+          }
+          setTurn('Enemy');
         }
-      } else if (turn === 'enemy') {
-        let deathCheckEnemy = await applyStatusEffects(enemy, setEnemy, setEnemyHealthColor, "Player", endGame, updateMoney, gameEnded);
-        //Wait for status effects to take effect
-        console.log("Enemy death from status: ",deathCheckEnemy);
-        if(deathCheckEnemy !== true){
-          setTimeout(()=>{
-            const skillId = enemy.skills[0];
-            if (attackFunctions[skillId]) {
-              attackFunctions[skillId](enemy, 'player', enemy.damage, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, gameEnded);
+        //Check if target has status effect
+        if(player.status_effects.length > 0){
+          await applyStatusEffects(player, setPlayer, setPlayerHealthColor, "Enemy", endGame, updateMoney, gameEnded)
+          .then(deathCheckPlayer => {
+            // console.log("Player death from status: ",deathCheckPlayer);
+            if(deathCheckPlayer !== true){
+              //Wait for status effects to take effect
+              setTimeout(() => {
+                playerAttacks();
+              }, TURN_LENGTH / 2);
+            } else{
+              //Entity died from status effect, ending the game
+              handleGameEnd('Enemy', updateMoney, updateCharacterLevel, undefined, undefined, player, setPlayer, endGame, gameEnded);
             }
-            setTimeout(() => setTurn('player'), TURN_LENGTH / 2);
-          }, TURN_LENGTH / 2);
-        } else {
-          handleGameEnd('Player', updateMoney, enemy.money_drop, endGame, gameEnded);
+          })
+        }else{
+          //Otherwise execute without waiting for applyStatusEffects
+          playerAttacks();
+        }
+      } else if (turn === 'Enemy') {
+        async function enemyAttacks(){
+          const skillId = enemy.skills[0];
+          if (attackFunctions[skillId]) {
+            await attackFunctions[skillId](enemy, 'Player', enemy.damage,setEnemyAnimation, setPlayer, endGame, setEnemyHealthColor, setEnemy, setPlayerHealthColor, playerPassives, enemyPassives, updateMoney, updateCharacterLevel, gameEnded);
+          }
+          setTurn('Player');
+        }
+        //Check if target has status effect
+        if(enemy.status_effects.length > 0){
+          await applyStatusEffects(enemy, setEnemy, setEnemyHealthColor, "Player", endGame, updateMoney, gameEnded)
+          .then(deathCheckEnemy => {
+            // console.log("Enemy death from status: ",deathCheckEnemy);
+            if(deathCheckEnemy !== true){
+              //Wait for status effects to take effect
+              setTimeout(()=>{
+                enemyAttacks();
+              }, TURN_LENGTH / 2);
+            } else {
+              //Entity died from status effect, ending the game
+              handleGameEnd('Player', updateMoney, updateCharacterLevel, enemy.money_drop, enemy.experience_drop, player, setPlayer, endGame, gameEnded);
+            }
+          })
+        }else{
+          //Otherwise execute without waiting for applyStatusEffects
+          enemyAttacks();
         }
       }
     };
@@ -221,22 +292,25 @@ function Attack({
 
     return () => clearInterval(attackInterval);
   }, [
-    turn,
-    player,
-    enemy,
-    mode,
-    setTurn,
-    setPlayer,
-    endGame,
-    setEnemy,
-    setPlayerHealthColor,
-    setEnemyHealthColor,
-    setTimeout,
-    playerPassives,
-    enemyPassives,
+  updateMoney,
+  updateCharacterLevel,
+  player,
+  enemy,
+  turn,
+  setTurn,
+  endGame,
+  mode,
+  setPlayer,
+  setEnemy,
+  setPlayerHealthColor,
+  setEnemyHealthColor,
+  setPlayerAnimation,
+  setEnemyAnimation,
+  playerPassives,
+  enemyPassives,
+  gameEnded
   ]);
 
   return null;
 }
-
 export default Attack;
