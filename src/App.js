@@ -56,9 +56,9 @@ function App() {
   const animationVarriants = useMemo(() => animations, []);//Note to self: animation is memorized with no dependencies so dont try to change it with codes
   const [enemyQueue, setEnemyQueue] = useState(() => 
     [
-      { name: 'archer', level: 1 },
-      { name: 'knight', level: 1 },
-      { name: 'rogue', level: 1 }
+      { name: 'zombie', level: 1 },
+      { name: 'ghost', level: 1 },
+      { name: 'necromancer', level: 1 }
     ].map(({ name, level }) => createCharacter(name, level))
   );
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
@@ -137,9 +137,9 @@ function App() {
     setEnemyAnimation("idle");
     setEnemyQueue(() => 
       [
-        { name: 'archer', level: 1 },
-        { name: 'knight', level: 1 },
-        { name: 'rogue', level: 1 }
+        { name: 'zombie', level: 1 },
+        { name: 'ghost', level: 1 },
+        { name: 'necromancer', level: 1 }
       ].map(({ name, level }) => createCharacter(name, level))
     );
     setCurrentEnemyIndex(0);
