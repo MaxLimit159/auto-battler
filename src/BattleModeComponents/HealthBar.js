@@ -2,33 +2,50 @@ import React, { useState, useEffect } from 'react';
 
 function HealthBar({ health, maxHealth, healthColor }) {
   const [displayedHealth, setDisplayedHealth] = useState(health);
-  const animationDuration = 100; // Duration of the animation in milliseconds
-  const steps = 100; // Number of steps for the animation
-  const stepTime = animationDuration / steps;
+
+  // Immediately update displayedHealth when health changes
   useEffect(() => {
-    if (displayedHealth !== health) {
-      const healthDifference = health - displayedHealth;
-      const healthStep = healthDifference / steps; // Amount of health to adjust per step
+    setDisplayedHealth(health);
+  }, [health]);
 
-      const intervalId = setInterval(() => {
-        setDisplayedHealth(prevHealth => {
-          const newHealth = prevHealth + healthStep;
-          if ((healthStep > 0 && newHealth >= health) || (healthStep < 0 && newHealth <= health)) {
-            clearInterval(intervalId);
-            return health;
-          }
-          return newHealth;
-        });
-      }, stepTime);
-
-      return () => clearInterval(intervalId); // Cleanup interval when component unmounts
-    }
-  }, [health, displayedHealth]);
+  const healthPercentage = (displayedHealth / maxHealth) * 100;
 
   return (
-    <p className={`health ${healthColor}`}>
-      Health: {Math.round(displayedHealth)} / {maxHealth}
-    </p>
+    <div
+      className="health-bar-container"
+      style={{
+        border: '1px solid black',
+        width: '100%',
+        height: '25px',
+        background: '#ccc',
+        borderRadius: '5px',
+        position: 'relative',
+      }}
+    >
+      <div
+        className="health-bar"
+        style={{
+          width: `${healthPercentage}%`,
+          height: '100%',
+          background: healthColor || 'green',
+          borderRadius: '5px 0 0 5px',
+          position: 'relative',
+        }}
+      />
+      <div
+        className="health-text"
+        style={{
+          position: 'absolute',
+          top: '3px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontWeight: 'bold',
+          color: healthPercentage < 25 ? 'red' : 'white', // Red text for critical health, white otherwise
+        }}
+      >
+        {`${Math.round(displayedHealth)} / ${maxHealth}`}
+      </div>
+    </div>
   );
 }
 
