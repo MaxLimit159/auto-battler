@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const defaultSaveData = {
-  money: 100, // Default money value if no save is found
+  money: 0,
   player_characters: {
-    knight: { level: 1, experience: 0},
-    archer: { level: 1, experience: 0},
-    mage: { level: 1, experience: 0},
-    rogue: { level: 1, experience: 0},
-    vampire: { level: 1, experience: 0},
-  }
+    knight: { level: 1, experience: 0, isUnlocked: true},
+    rogue: { level: 1, experience: 0, isUnlocked: true},
+    mage: { level: 1, experience: 0, isUnlocked: true},
+    archer: { level: 1, experience: 0, isUnlocked: false},
+    vampire: { level: 1, experience: 0, isUnlocked: false},
+  },
 };
 
 const SaveManager = () => {
@@ -62,12 +62,19 @@ const SaveManager = () => {
   };
 
   // Function to modify character progressions and save the game
-  const updateCharacterLevel = (characterId, newLevel, newExperience) => {
+  const updateCharacterLevel = (characterId, newLevel, newExperience, newIsUnlocked) => {
     setCharacters((prevCharacters) => {
       const updatedCharacters = { ...prevCharacters };
       if (updatedCharacters[characterId]) {
-        updatedCharacters[characterId].level = newLevel;
-        updatedCharacters[characterId].experience = newExperience;
+        if(newLevel !== undefined){
+          updatedCharacters[characterId].level = newLevel;
+        }
+        if(newExperience !== undefined){
+          updatedCharacters[characterId].experience = newExperience;
+        }
+        if(newIsUnlocked !== undefined){
+          updatedCharacters[characterId].isUnlocked = newIsUnlocked;
+        }
         saveGame(money, updatedCharacters);
       }
       return updatedCharacters;
