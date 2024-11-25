@@ -4,5 +4,6 @@ export const passiveDescriptions = [
     { name: 'Arcane Infused', description: 'Ignores damage reduction effects' },
     { name: 'Life Steal', description: 'Heals 50% of damage done' },
     { name: 'Poison Tip', description: 'Applies a 2 turns poison on hit' },
-    { name: 'Soul Absorbion', description: 'Gains souls uppon attacking, launches Soul Barrage at max stacks hitting 3 times and healing!' },
+    { name: 'Soul Absorption', description: 'Gains souls uppon attacking, launches Soul Barrage at max stacks hitting 3 times and healing!' },
+    { name: 'Chest Mimic', description: 'Drops 10 coins when attacked.' },
   ];
