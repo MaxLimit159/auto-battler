@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { statusEffects } from './statusEffects.js';
 import { animations } from './animations'
+import { activeSkills } from './activeSkills.js';
 const TURN_LENGTH = 1000;
 const animationVarriants = animations;
 // Function to flash health color
@@ -47,13 +48,17 @@ const handleGameEnd = (winningSide, updateMoney, updateCharacterLevel, moneyDrop
   endGame(winningSide);
   console.log(`Game ends. ${winningSide} wins`);
 };
-//Function to handle status effects
-const applyStatusEffects = async (character, setEntity, setEntityHealthColor, winning_side, endGame, updateMoney, gameEnded) => {
+
+// Function to handle DoT status effects
+const applyDoTStatusEffects = async (character, setEntity, setEntityHealthColor, winning_side, endGame, updateMoney, gameEnded) => {
   const effectsToRemove = [];
   let deathCheck = false;
 
-  // Count the stacks of each unique status effect by type
-  const statusEffectCounts = character.status_effects.reduce((acc, effect) => {
+  // Filter status effects to only include "DoT" types
+  const dotEffects = character.status_effects.filter(effect => effect.type === "DoT");
+
+  // Count the stacks of each unique "DoT" status effect
+  const statusEffectCounts = dotEffects.reduce((acc, effect) => {
     if (acc[effect.name]) {
       acc[effect.name].stackCount += 1;
     } else {
@@ -61,19 +66,21 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
     }
     return acc;
   }, {});
+
   // Convert statusEffectCounts from Object to Array and loop through each unique status effect type to activate each effect functions based on its stack count
   for (const status_effect_stack of Object.values(statusEffectCounts)) {
+    // Apply the effect and update the deathCheck status
     deathCheck = await status_effect_stack.effect(
       setEntity,
       setEntityHealthColor,
       status_effect_stack.stackCount,
-      deathCheck,
+      deathCheck
     );
 
-    //Reduce the durration of all status effect on the character matching the currently processing statusEffectCount
-    for (const status_effect of character.status_effects){
-      if(status_effect_stack.name === status_effect.name){
-        if(status_effect.duration !== null){
+    // Reduce the duration of all matching status effects
+    for (const status_effect of dotEffects) {
+      if (status_effect_stack.name === status_effect.name) {
+        if (status_effect.duration !== null) {
           // Reduce duration by 1 after effect is applied
           status_effect.duration -= 1;
 
@@ -85,7 +92,7 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
       }
     }
 
-    // If the character dies break out of the loop
+    // If the character dies, break out of the loop
     if (deathCheck) {
       break;
     }
@@ -101,7 +108,40 @@ const applyStatusEffects = async (character, setEntity, setEntityHealthColor, wi
     ...prevEntity,
     status_effects: [...character.status_effects],
   }));
+
   return deathCheck;
+};
+
+const applyBuffStatusEffects = async (character, setEntity) => {
+  const effectsToRemove = [];
+
+  // Iterate over the character's status effects and process only "Buff" types
+  for (const statusEffect of character.status_effects) {
+    if (statusEffect.type === "Buff") {
+      // Reduce the duration of Buff effects
+      if (statusEffect.duration !== null) {
+        statusEffect.duration -= 1;
+
+        // Check if the duration has expired and mark it for removal
+        if (statusEffect.duration <= 0) {
+          effectsToRemove.push(statusEffect);
+        }
+      }
+    }
+  }
+
+// Remove expired Buff status effects from the character's status effects list
+character.status_effects = character.status_effects.filter(
+  effect => !effectsToRemove.includes(effect)
+);
+
+// Update the entity with the new status effects list
+setEntity(prevEntity => ({
+  ...prevEntity,
+  status_effects: [...character.status_effects],
+}));
+
+return effectsToRemove.length > 0;
 };
 
 //Function to give statusEffects to character
@@ -117,7 +157,10 @@ const inflictStatusEffects = (setEntity, buffName) => {
     );
 
     if (existingEffect) {
-      if (statusEffect.stackCount !== null) {
+      if (statusEffect.type === "Buff") {
+        // Refresh the effect for Buff type effects
+        existingEffect.duration = statusEffect.duration;
+      } else if (statusEffect.stackCount !== null) {
         // Increment stackCount for stackable effects
         existingEffect.stackCount++;
       } else if (statusEffect.duration !== null) {
@@ -134,13 +177,19 @@ const inflictStatusEffects = (setEntity, buffName) => {
 };
 
 // Function to calculate damage
-const calculateDamage = (damage, targetPassive, attackerPassives) => {
-  // Defensive damage reduction logics
+const calculateDamage = (attacker, defender, damage, attackerPassives, defenderPassives) => {
+  // Damage reducing logics
   if (!attackerPassives.includes('Arcane Infused')) {
-    if (targetPassive.includes('Bulwark')) {
+    if (defenderPassives.includes('Bulwark')) {
       damage *= 0.5;
     }
   }
+  // Damage increasing logics
+  const damageUpBuff = attacker.status_effects.find(effect => effect.name === "Damage Up");
+  if (damageUpBuff) {
+    damage *= 1.2;
+  }
+
   return damage;
 };
 
@@ -164,7 +213,7 @@ const doDamage = async (
   if (gameEnded.current) return false;
 
   // Calculate final damage considering passives
-  damage = calculateDamage(damage, defenderPassives, attackerPassives);
+  damage = calculateDamage(attacker, defender, damage, attackerPassives, defenderPassives);
 
   // Reduce defender's health and check if they are defeated
   setDefender((prevDefender) => {
@@ -309,8 +358,16 @@ function Attack({
   setEnemyAnimation,
   playerPassives,
   enemyPassives,
-  gameEnded
+  gameEnded,
+  selectedSkills,
 }) {
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [cooldowns, setCooldowns] = useState(
+    activeSkills.reduce((acc, skill) => {
+      acc[skill.id] = 0;  // Initialize cooldowns to 0 for all skills
+      return acc;
+    }, {})
+  );
   useEffect(() => {
     const handleAttack = async () => {
       const isPlayerTurn = turn === "Player";
@@ -351,11 +408,18 @@ function Attack({
               await attackFunctions[skillId](attacker, nextTurn, attacker.damage,setAttackerAnimation, defender, attackerPassives, defenderPassives, setDefender, setDefenderHealthColor, setAttacker, setAttackerHealthColor, updateMoney, updateCharacterLevel, endGame, gameEnded);
             }
           }
-          setTurn(nextTurn);
+          // Check if the target has any "Buff" type status effects before applying them
+          if (attacker.status_effects.some(effect => effect.type === "Buff")) {
+            await applyBuffStatusEffects(attacker, setAttacker);
+            setTurn(nextTurn);
+          } else {
+            // Otherwise, execute the turn switch immediately
+            setTurn(nextTurn);
+          }
         }
-      //   //Check if target has status effect
-        if(attacker.status_effects.length > 0){
-          await applyStatusEffects(attacker, setAttacker, setAttackerHealthColor, nextTurn, endGame, updateMoney, gameEnded)
+        //Check if target has status effect
+        if (attacker.status_effects.some(effect => effect.type === "DoT")) {
+          await applyDoTStatusEffects(attacker, setAttacker, setAttackerHealthColor, nextTurn, endGame, updateMoney, gameEnded)
           .then(deathCheck => {
             if(deathCheck !== true){
               //Wait for status effects to take effect
@@ -368,7 +432,7 @@ function Attack({
             }
           })
         }else{
-          //Otherwise execute without waiting for applyStatusEffects
+          //Otherwise execute without waiting for applyDoTStatusEffects
           actionAttack();
         }
     };
@@ -393,9 +457,80 @@ function Attack({
   setEnemyAnimation,
   playerPassives,
   enemyPassives,
-  gameEnded
+  gameEnded,
+  selectedSkills,
   ]);
 
-  return null;
+  // Handle Cooldown Timers (this is separated from the turn system)
+  useEffect(() => {
+    const cooldownInterval = setInterval(() => {
+      setCooldowns(prevCooldowns => {
+        const updatedCooldowns = {};
+        Object.keys(prevCooldowns).forEach(skillId => {
+          if (prevCooldowns[skillId] > 0) {
+            updatedCooldowns[skillId] = prevCooldowns[skillId] - 1;
+          } else {
+            updatedCooldowns[skillId] = 0;
+          }
+        });
+        return updatedCooldowns;
+      });
+    }, 1000); // Decrease cooldown every second
+
+    return () => clearInterval(cooldownInterval); // Cleanup
+  }, []);
+
+  // Handle Skill Usage independent of turn
+  useEffect(() => {
+    if (selectedSkill && cooldowns[selectedSkill] === 0) {
+      const skill = activeSkills.find(s => s.id === selectedSkill);
+      if (skill) {
+        // Trigger the skill effect based on selected skill
+        skill.useSkill(doDamage, doHeal, inflictStatusEffects, player, "Enemy", player.damage, enemy, playerPassives, enemyPassives, setEnemy, setEnemyHealthColor, setPlayer, setPlayerHealthColor, updateMoney, updateCharacterLevel, endGame, gameEnded);
+        // Set cooldown for selected skill
+        setCooldowns(prevCooldowns => ({
+          ...prevCooldowns,
+          [selectedSkill]: skill.cooldown
+        }));
+        setSelectedSkill(null); // Reset selected skill
+      }
+    }
+  }, [
+    selectedSkill, 
+    cooldowns, 
+    player, 
+    player.damage, 
+    playerPassives, 
+    enemy, 
+    enemyPassives, 
+    setPlayer, 
+    setPlayerHealthColor, 
+    setEnemy, 
+    setEnemyHealthColor, 
+    updateMoney, 
+    updateCharacterLevel, 
+    endGame, 
+    gameEnded,
+  ]);
+
+  return (
+    <div>
+      <div className="active-skills">
+        {activeSkills
+        .filter((skill) => selectedSkills.includes(skill.id))
+        .map((skill) => (
+          <button
+            key={skill.id}
+            disabled={cooldowns[skill.id] > 0} // Disable if cooldown > 0
+            onClick={() => setSelectedSkill(skill.id)} // Set selected skill
+            title={skill.description}
+          >
+            {skill.name} 
+            {cooldowns[skill.id] > 0 && ` (${cooldowns[skill.id]}s)`} {/* Show cooldown */}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 export default Attack;
