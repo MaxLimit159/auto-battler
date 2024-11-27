@@ -6,6 +6,7 @@ import HealthBar from './BattleModeComponents/HealthBar.js';
 import { characterList } from './charactersFiles/characters.js';
 import { passiveDescriptions } from './passives';
 import { animations } from './animations'
+import { activeSkills } from './activeSkills.js';
 import SaveManager from './SaveManager';
 import { motion } from "framer-motion"
 
@@ -69,18 +70,30 @@ function App() {
   const [enemyHealthColor, setEnemyHealthColor] = useState('');
   const [playerAnimation, setPlayerAnimation] = useState("idle");
   const [enemyAnimation, setEnemyAnimation] = useState("idle");
+
+  //Manage shop UI
+  const [shopTab, setShopTab] = useState('characters');
   const [isShopOpen, setIsShopOpen] = useState(false);
-  const { money, player_characters, updateMoney, updateCharacterLevel, saveGame } = SaveManager();
+
+  //Manage and load player data
+  const { money, player_characters, player_activeSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, saveGame } = SaveManager();
+  useEffect(() => {
+    saveGame(money, player_characters, player_activeSkills);
+  }, [money, player_characters, player_activeSkills, saveGame]);
+
+  //Varriables to pass over to Attack.js
   const gameEnded = useRef(false);
+  const [selectedStage, setSelectedStage] = useState(null);
   const animationVarriants = useMemo(() => animations, []);//Note to self: animation is memorized with no dependencies so dont try to change it with codes
   const [enemyQueue, setEnemyQueue] = useState(null);
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
   const [currentPlayerId, setCurrentPlayerId] = useState();
+  const [selectedSkills, setSelectedSkills] = useState([]);
+
   //Timer for next battle states
   const [countdown, setCountdown] = useState(5);  // Timer starting at 5 seconds
   const [timerActive, setTimerActive] = useState(false);
   const nextBattleTimer = useRef(null);
-  const [selectedStage, setSelectedStage] = useState(null);
 
   const selectCharacter = (characterId) => {
     //Remember the id
@@ -169,43 +182,73 @@ function App() {
       setPlayerAnimation(animationVarriants.idle);
     }
   }, [turn, animationVarriants])
-  useEffect(() => {
-    saveGame(money, player_characters);
-  }, [money, player_characters, saveGame]);
   const shopItems = [
-    { id: 1, name: "Recruit the Vampire", character_id: 'vampire', cost: 2000},
-    { id: 2, name: "Recruit the Archer", character_id: 'archer', cost: 3000},
+    { id: 1, name: "Recruit the Vampire", character_id: 'vampire', cost: 2000 },
+    { id: 2, name: "Recruit the Archer", character_id: 'archer', cost: 3000 },
+    { id: 3, name: "Unlock Heal", skill_id: 'skillHeal', cost: 0 },
+    { id: 4, name: "Unlock Fireball", skill_id: 'skillFireball', cost: 0 },
+    { id: 5, name: "Unlock Poison", skill_id: 'skillPoison', cost: 0 },
+    { id: 6, name: "Unlock Damage Up", skill_id: 'skillDamageUp', cost: 0 },
 ];
 
 // Handle purchase
 const handlePurchase = (item) => {
-    if (money >= item.cost) {
-        if (item.character_id) {
-          if(player_characters[item.character_id].isUnlocked === true){
-            alert(`You already have the ` + item.character_id);
-            return;
-          }
-            updateCharacterLevel(item.character_id, undefined, undefined, true);
-            switch (item.character_id){
-              case 'archer':{
-                alert(`I make the most potent poison in the land, you won't regret having me!\nYou recruited the Archer!`);
-                break;
-              }
-              case 'vampire':{
-                alert(`I heard alot about you guys, mind having another member? The name's Alucard.\nYou recruited the Vampire!`);
-                break;
-              }
-              default:{
-                alert(`Purchase successful!`);
-              }
-            }
-        }
-        updateMoney(-item.cost);
-    } else {
-        alert("Not enough money!");
+  if (money >= item.cost) {
+    if (item.character_id) {
+      // Handle character purchase logic
+      if (player_characters[item.character_id].isUnlocked === true) {
+        alert(`You already have the ${item.character_id}`);
+        return;
+      }
+      updateCharacterLevel(item.character_id, undefined, undefined, true);
+      alert('Purchase successful!');
+    } else if (item.skill_id) {
+      // Handle active skill purchase logic
+      if (player_activeSkills[item.skill_id]?.isUnlocked === true) {
+        alert(`You already own the skill ${item.skill_id}`);
+        return;
+      }
+      updatePlayerActiveSkills(item.skill_id, true);
+      alert('Purchase successful!');
     }
+    // Update money after successful purchase
+    updateMoney(-item.cost);
+  } else {
+    alert('Not enough money!');
+  }
 };
 
+//Handle equiping skills
+const handleEquipSkill = (skillId) => {
+  if (activeSkills.find(s => s.id === skillId)) {
+    if (selectedSkills.includes(skillId)) {
+      alert("Skill is already equipped.");
+      return;
+    }
+    if (selectedSkills.length >= 3) {
+      alert("You can only equip up to 3 skills.");
+      return;
+    }
+    setSelectedSkills([...selectedSkills, skillId]);
+    updatePlayerActiveSkills(skillId, true, true);
+  } else {
+    alert("Couldn't find the skill to equip.")
+  }
+};
+
+const handleUnequipSkill = (skillId) => {
+  setSelectedSkills(selectedSkills.filter(id => id !== skillId));
+  updatePlayerActiveSkills(skillId, true, false);
+};
+//Constantly update the state to show the saved data
+useEffect(() => {
+  const equippedSkills = Object.keys(player_activeSkills).filter(
+    (skillId) => player_activeSkills[skillId]?.equipped
+  );
+  setSelectedSkills(equippedSkills);
+}, [player_activeSkills]);
+
+//Get details of the enemy in SelectStage
 const getEnemyDetails = (enemyName) => {
   const enemy = characterList[enemyName];
   if (!enemy) return null;
@@ -247,11 +290,32 @@ const handleModalClose = () => {
   return (
     <>
     {isShopOpen && (
-        <div className="modal">
-            <div className="modal-content">
-                <h2>Recruiting Guild</h2>
-                <ul style={{paddingLeft: 5}}>
-                {shopItems.map((item) => {
+      <div className="modal">
+        <div className="modal-content">
+          <h2>Recruiting Guild</h2>
+          
+          {/* Tab Navigation */}
+          <div className="tabs">
+            <button 
+              className={`tab-button ${shopTab === 'characters' ? 'active' : ''}`}
+              onClick={() => setShopTab('characters')}
+            >
+              Characters
+            </button>
+            <button 
+              className={`tab-button ${shopTab === 'skills' ? 'active' : ''}`}
+              onClick={() => setShopTab('skills')}
+            >
+              Skills
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {shopTab === 'characters' && (
+            <ul style={{ paddingLeft: 5 }}>
+              {shopItems
+                .filter((item) => item.character_id) // Filter for character shop items
+                .map((item) => {
                   const character = player_characters[item.character_id];
                   const isOwned = character?.isUnlocked;
                   const canAfford = money >= item.cost;
@@ -286,17 +350,94 @@ const handleModalClose = () => {
                     </div>
                   );
                 })}
-              </ul>
-              <button onClick={() => setIsShopOpen(false)}>Close</button>
-            </div>
+            </ul>
+          )}
+
+          {shopTab === 'skills' && (
+            <ul style={{ paddingLeft: 5 }}>
+              {shopItems
+                .filter((item) => item.skill_id) // Filter for skill items only
+                .map((item) => {
+                  const skill = activeSkills.find(s => s.id === item.skill_id);
+                  if (!skill) return null;
+
+                  // Get the cost of the skill from the shop item
+                  const cost = item.cost;
+                  const isUnlocked = player_activeSkills[item.skill_id]?.isUnlocked;
+                  const isEquipped = selectedSkills.includes(item.skill_id);
+
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%',
+                      }}
+                    >
+                      <span>{skill.name} - {cost}$ | Effect: {skill.description} </span>
+
+                      {!isUnlocked ? (
+                        // If skill is not unlocked, show it as a shop item
+                        <button
+                          onClick={() => handlePurchase(item)} // Use existing handlePurchase
+                          disabled={money < cost} // Disable if not enough money
+                          style={{
+                            cursor: money >= cost ? 'pointer' : 'not-allowed',
+                            backgroundColor: money >= cost ? '#28a745' : '#ff6666',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '5px 10px',
+                          }}
+                        >
+                          {money >= cost ? 'Buy' : "Can't afford"}
+                        </button>
+                      ) : (
+                        // If skill is unlocked, show it as an equip button
+                        <button
+                          onClick={() => {
+                            isEquipped ? handleUnequipSkill(item.skill_id) : handleEquipSkill(item.skill_id);
+                          }}
+                          style={{
+                            cursor: 'pointer',
+                            backgroundColor: isEquipped ? '#007bff' : '#28a745',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '5px 10px',
+                          }}
+                        >
+                          {isEquipped ? 'Unequip' : 'Equip'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+            </ul>
+          )}
+
+          <button onClick={() => setIsShopOpen(false)}>Close</button>
         </div>
+      </div>
     )}
+
     <div className="container">
       {mode === "Start" && (
         <>
           <div className="user-stats-display">
             <h3>User Menu</h3>
             <p>Money: {money}$</p>
+            <div style={{ marginTop: "10px" }}>
+              <h3>Equipped Skills:</h3>
+              <ul>
+                {selectedSkills.map(skillId => {
+                  const skill = activeSkills.find(s => s.id === skillId);
+                  return <li key={skillId}>{skill?.name}</li>;
+                })}
+              </ul>
+            </div>
             {/* <button onClick={handleSaveGame}>Save Game</button> */}
             <button onClick={() => setIsShopOpen(true)}>Open Shop</button>
           </div>
@@ -556,6 +697,7 @@ const handleModalClose = () => {
               playerPassives={player.passives}
               enemyPassives={enemy.passives}
               gameEnded={gameEnded}
+              selectedSkills={selectedSkills}
             />
           </div>
         </>

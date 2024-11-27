@@ -10,7 +10,8 @@ export const statusEffects = {
     poison: { 
       name: "Poison", 
       image: "/StatusEffectImage/poison.png",
-      description: "Takes 10% of max health as damage on turn.", 
+      description: "Takes 10% of max health as damage on turn.",
+      type: "DoT",
       duration: 2,
       stackCount: null,
       effect: (setEntity, setEntityHealthColor, stackCount, deathCheck) => {
@@ -43,8 +44,22 @@ export const statusEffects = {
       name: "Soul", 
       image: "/StatusEffectImage/soul.png",
       description: "Used to launch powerful attacks.", 
+      type: "Neutral",
       duration: null,
       stackCount: 1,
+      effect: (setEntity, setEntityHealthColor, stackCount, deathCheck) => {
+        return new Promise((resolve) => {
+          resolve(deathCheck);
+        })
+      }
+    },
+    damageUp: { 
+      name: "Damage Up", 
+      image: "/StatusEffectImage/damageUp.png",
+      description: "Deals 20% extra damage.",
+      type: "Buff",
+      duration: 2,
+      stackCount: null,
       effect: (setEntity, setEntityHealthColor, stackCount, deathCheck) => {
         return new Promise((resolve) => {
           resolve(deathCheck);
