@@ -4,8 +4,8 @@ const defaultSaveData = {
   money: 0,
   player_characters: {
     knight: { level: 1, experience: 0, isUnlocked: true},
-    rogue: { level: 5, experience: 0, isUnlocked: true},
-    mage: { level: 5, experience: 0, isUnlocked: true},
+    rogue: { level: 1, experience: 0, isUnlocked: true},
+    mage: { level: 1, experience: 0, isUnlocked: true},
     archer: { level: 1, experience: 0, isUnlocked: true},
     vampire: { level: 1, experience: 0, isUnlocked: false},
   },
