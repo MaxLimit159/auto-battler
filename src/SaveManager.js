@@ -4,9 +4,9 @@ const defaultSaveData = {
   money: 0,
   player_characters: {
     knight: { level: 1, experience: 0, isUnlocked: true},
-    rogue: { level: 1, experience: 0, isUnlocked: true},
-    mage: { level: 1, experience: 0, isUnlocked: true},
-    archer: { level: 1, experience: 0, isUnlocked: false},
+    rogue: { level: 5, experience: 0, isUnlocked: true},
+    mage: { level: 5, experience: 0, isUnlocked: true},
+    archer: { level: 1, experience: 0, isUnlocked: true},
     vampire: { level: 1, experience: 0, isUnlocked: false},
   },
   player_activeSkills: {
@@ -15,19 +15,29 @@ const defaultSaveData = {
     skillPoison: {equipped: false, isUnlocked: false},
     skillDamageUp: {equipped: false, isUnlocked: false},
   },
+  player_ownedPassives: {
+    passiveSoulAbsorption: {name: "Soul Absorption", equipped: false, isUnlocked: false, isObtained: false},
+    passiveBulwark: {name: "Bulwark", equipped: false, isUnlocked: false, isObtained: false},
+    passiveDualWield: {name: "Dual Wield", equipped: false, isUnlocked: false, isObtained: false},
+    passiveArcaneInfused: {name: "Arcane Infused", equipped: false, isUnlocked: false, isObtained: false},
+    passiveLifeSteal: {name: "Life Steal", equipped: false, isUnlocked: false, isObtained: false},
+    passivePoisonTip: {name: "Poison Tip", equipped: false, isUnlocked: false, isObtained: false},
+  },
 };
 
 const SaveManager = () => {
   const [money, setMoney] = useState(defaultSaveData.money);
   const [player_characters, setCharacters] = useState(defaultSaveData.player_characters);
   const [player_activeSkills, setPlayerActiveSkills] = useState(defaultSaveData.player_activeSkills);
+  const [player_ownedPassives, setPlayerOwnedPassives] = useState(defaultSaveData.player_ownedPassives);
 
   // Save data to localStorage
-  const saveGame = (moneyToSave, charactersToSave, skillsToSave) => {
+  const saveGame = (moneyToSave, charactersToSave, skillsToSave, passivesToSave) => {
     const saveData = {
       money: moneyToSave,
       player_characters: charactersToSave,
       player_activeSkills: skillsToSave,
+      player_ownedPassives: passivesToSave,
     };
     localStorage.setItem('gameSave', JSON.stringify(saveData));
   };
@@ -41,8 +51,9 @@ const SaveManager = () => {
       setMoney(parsedData.money ?? defaultSaveData.money);
       setCharacters(parsedData.player_characters ?? defaultSaveData.player_characters);
       setPlayerActiveSkills(parsedData.player_activeSkills ?? defaultSaveData.player_activeSkills);
+      setPlayerOwnedPassives(parsedData.player_ownedPassives ?? defaultSaveData.player_ownedPassives);
     } else {
-      saveGame(defaultSaveData.money, defaultSaveData.player_characters, defaultSaveData.player_activeSkills); // Create a new save if none exists
+      saveGame(defaultSaveData.money, defaultSaveData.player_characters, defaultSaveData.player_activeSkills, defaultSaveData.player_ownedPassives); // Create a new save if none exists
     }
   }, []);
 
@@ -55,7 +66,7 @@ const SaveManager = () => {
   const updateMoney = (amount) => {
     setMoney((prevMoney) => {
       const newMoney = prevMoney + amount;
-      saveGame(newMoney, player_characters, player_activeSkills);
+      saveGame(newMoney, player_characters, player_activeSkills, player_ownedPassives);
       return newMoney;
     });
   };
@@ -69,7 +80,7 @@ const SaveManager = () => {
         if (newExperience !== undefined) updatedCharacters[characterId].experience = newExperience;
         if (newIsUnlocked !== undefined) updatedCharacters[characterId].isUnlocked = newIsUnlocked;
 
-        saveGame(money, updatedCharacters, player_activeSkills);
+        saveGame(money, updatedCharacters, player_activeSkills, player_ownedPassives);
       }
       return updatedCharacters;
     });
@@ -80,11 +91,25 @@ const SaveManager = () => {
     setPlayerActiveSkills((prevSkills) => {
       const updatedPlayerActiveSkills = { ...prevSkills };
       if (updatedPlayerActiveSkills[activeSkillId]) {
-        updatedPlayerActiveSkills[activeSkillId].isUnlocked = newIsUnlocked;
-        updatedPlayerActiveSkills[activeSkillId].equipped = newEquipped;
-        saveGame(money, player_characters, updatedPlayerActiveSkills);
+        if (newIsUnlocked !== undefined) updatedPlayerActiveSkills[activeSkillId].isUnlocked = newIsUnlocked;
+        if (newEquipped !== undefined) updatedPlayerActiveSkills[activeSkillId].equipped = newEquipped;
+        saveGame(money, player_characters, updatedPlayerActiveSkills, player_ownedPassives);
       }
       return updatedPlayerActiveSkills;
+    });
+  };
+
+  // Function to modify player skills progressions and save the game
+  const updatePlayerOwnedPassives = (passiveId, newIsUnlocked, newEquipped, newIsObtained) => {
+    setPlayerOwnedPassives((prevPassives) => {
+      const updatedPlayerOwnedPassives = { ...prevPassives };
+      if (updatedPlayerOwnedPassives[passiveId]) {
+        if (newIsUnlocked !== undefined) updatedPlayerOwnedPassives[passiveId].isUnlocked = newIsUnlocked;
+        if (newEquipped !== undefined) updatedPlayerOwnedPassives[passiveId].equipped = newEquipped;
+        if (newIsObtained !== undefined) updatedPlayerOwnedPassives[passiveId].isObtained = newIsObtained;
+        saveGame(money, player_characters, player_activeSkills, updatedPlayerOwnedPassives);
+      }
+      return updatedPlayerOwnedPassives;
     });
   };
 
@@ -92,10 +117,12 @@ const SaveManager = () => {
     money,
     player_characters,
     player_activeSkills,
+    player_ownedPassives,
     saveGame,
     updateMoney,
     updateCharacterLevel,
     updatePlayerActiveSkills,
+    updatePlayerOwnedPassives,
   };
 };
 
