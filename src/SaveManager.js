@@ -6,7 +6,7 @@ const defaultSaveData = {
     knight: { level: 1, experience: 0, isUnlocked: true},
     rogue: { level: 1, experience: 0, isUnlocked: true},
     mage: { level: 1, experience: 0, isUnlocked: true},
-    archer: { level: 1, experience: 0, isUnlocked: true},
+    archer: { level: 1, experience: 0, isUnlocked: false},
     vampire: { level: 1, experience: 0, isUnlocked: false},
   },
   player_activeSkills: {
