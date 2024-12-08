@@ -9,6 +9,7 @@ import { animations } from './animations'
 import { activeSkills } from './activeSkills.js';
 import SaveManager from './SaveManager';
 import { motion } from "framer-motion"
+import { statusEffects } from './statusEffects.js';
 
 const stageData = [
   {
@@ -25,39 +26,19 @@ const stageData = [
       { name: 'mimicKing', level: 1 },
     ],
   },
+  {
+    stageName: 'Challenge the Archmage!',
+    enemies: [
+      { name: 'archmage', level: 1 },
+    ],
+  },
 ]
-const calculateExperienceForNextLevel = (level) => level * 100;
-const getLevelUppedStats = (character) => {
-  const levelMultiplier = 1 + (character.level - 1) * 0.05;
-
-  // Apply the scaling and round down each stat
-  character.maxHealth = Math.floor(character.maxHealth * levelMultiplier);
-  character.health = Math.floor(character.maxHealth);
-  character.damage = Math.floor(character.damage * levelMultiplier);
-  character.speed = Math.floor(character.speed * levelMultiplier);
-
-  return character;
-};
-const createCharacter = (name, level = 1, experience = 0) => {
-  // Clone the base character from the characterList
-  const baseCharacter = { ...characterList[name] };
-
-  if (!baseCharacter) {
-    throw new Error(`Character ${name} not found in characterList`);
-  }
-
-  // Set initial level
-  const character = { ...baseCharacter, level, experience };
-
-  //Return the character with the proper stats based on the given level
-  return getLevelUppedStats(character);
-};
 // Function to get the description of a passive by its name
 const getPassiveDescription = (passiveName) => {
   const passive = passiveDescriptions.find(p => p.name === passiveName);
   return passive 
     ? `<b>${passive.name}</b>: ${passive.description}` 
-    : 'No passive';
+    : `<b>${passiveName}</b>: Can not find description`;
 };
 // const characterKeys = Object.keys(characterList);
 function App() {
@@ -70,16 +51,103 @@ function App() {
   const [enemyHealthColor, setEnemyHealthColor] = useState('');
   const [playerAnimation, setPlayerAnimation] = useState("idle");
   const [enemyAnimation, setEnemyAnimation] = useState("idle");
-
+  const baseCharacterList = JSON.parse(JSON.stringify(characterList));
   //Manage shop UI
   const [shopTab, setShopTab] = useState('characters');
   const [isShopOpen, setIsShopOpen] = useState(false);
 
   //Manage and load player data
-  const { money, player_characters, player_activeSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, saveGame } = SaveManager();
+  const { money, player_characters, player_activeSkills, player_ownedPassives, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, saveGame } = SaveManager();
   useEffect(() => {
-    saveGame(money, player_characters, player_activeSkills);
-  }, [money, player_characters, player_activeSkills, saveGame]);
+    saveGame(money, player_characters, player_activeSkills, player_ownedPassives);
+  }, [money, player_characters, player_activeSkills, player_ownedPassives, saveGame]);
+
+  useEffect(() => {
+    const passivesToMakeObtained = {
+      knight: 'passiveBulwark',
+      rogue: 'passiveDualWield',
+      mage: 'passiveArcaneInfused',
+      archer: 'passivePoisonTip',
+      vampire: 'passiveLifeSteal',
+    };
+  
+    Object.entries(passivesToMakeObtained).forEach(([characterId, passiveId]) => {
+      const character = player_characters[characterId];
+      const passive = player_ownedPassives[passiveId];
+      // Check if the character exists and meets conditions
+      if (
+        character &&
+        character.level >= 10 &&
+        passive &&
+        !passive.isObtained
+      ) {
+        updatePlayerOwnedPassives(passiveId, undefined, undefined, true);
+      }
+    });
+  }, [player_characters, player_ownedPassives, updatePlayerOwnedPassives]);
+
+  const calculateExperienceForNextLevel = (level) => level * 100;
+  const getLevelUppedStats = (character) => {
+    const levelMultiplier = 1 + (character.level - 1) * 0.05;
+    // Apply the scaling and round down each stat
+    character.maxHealth = Math.floor(character.maxHealth * levelMultiplier);
+    character.health = Math.floor(character.maxHealth);
+    character.damage = Math.floor(character.damage * levelMultiplier);
+    character.speed = Math.floor(character.speed * levelMultiplier);
+    character.money_drop = Math.floor(character.money_drop * levelMultiplier);
+    character.experience_drop = Math.floor(character.experience_drop * levelMultiplier);
+  
+    // Add new passives based on level
+    if (character.passiveUnlocks) {
+      for (const [level, passive] of Object.entries(character.passiveUnlocks)) {
+        if (character.level >= parseInt(level)) {
+          if (!character.passives.includes(passive)) {
+            character.passives.push(passive);
+          }
+        }
+      }
+    }
+
+    // Add all equipped passives to the character's passives array
+    if (character.passives && character.playable === true) {
+      for (const [, passiveData] of Object.entries(player_ownedPassives)) {
+        if (passiveData?.equipped && passiveData?.name) {
+          if (!character.passives.includes(passiveData.name)) {
+            character.passives.push(passiveData.name);
+          }
+        }
+      }
+    }
+    if (character.passives.includes("Dual Wield")){
+      character.skills = ['doubleAttack'];
+    }
+    if (character.passives.includes("Magic Barrier")){
+      character.shield += Math.floor(character.maxHealth / 2);
+    }
+    if (character.passives.includes("Archmage Codex")) {
+      const Effect = { ...statusEffects.codexArcaneAssault };
+      if (!character.status_effects) {
+        character.status_effects = [];
+      }
+      if (!character.status_effects.some(effect => effect.name === "Arcmage Codex: Arcane Assault")) {
+        character.status_effects.push(Effect);
+      }
+    }
+    return character;
+  };
+  const createCharacter = (name, level = 1, experience = 0) => {
+    // Clone the base character from the baseCharacterList
+    const baseCharacter = {...baseCharacterList[name]};
+  
+    if (!baseCharacter) {
+      throw new Error(`Character ${name} not found in characterList`);
+    }
+
+    // Set initial level
+    const character = { ...baseCharacter, level, experience };
+    //Return the character with the proper stats based on the given level
+    return getLevelUppedStats(character);
+  };
 
   //Varriables to pass over to Attack.js
   const gameEnded = useRef(false);
@@ -89,6 +157,7 @@ function App() {
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
   const [currentPlayerId, setCurrentPlayerId] = useState();
   const [selectedSkills, setSelectedSkills] = useState([]);
+  const [selectedPassives, setSelectedPassives] = useState([]);
 
   //Timer for next battle states
   const [countdown, setCountdown] = useState(5);  // Timer starting at 5 seconds
@@ -189,6 +258,12 @@ function App() {
     { id: 4, name: "Unlock Fireball", skill_id: 'skillFireball', cost: 0 },
     { id: 5, name: "Unlock Poison", skill_id: 'skillPoison', cost: 0 },
     { id: 6, name: "Unlock Damage Up", skill_id: 'skillDamageUp', cost: 0 },
+    { id: 7, name: "Buy Soul Absorption", passive_name:'Soul Absorption', passive_id: 'passiveSoulAbsorption', requirement: 'Drops from the Necromancer.', cost: 0 },
+    { id: 8, name: "Buy Bulwark", passive_name:'Bulwark', passive_id: 'passiveBulwark', requirement: 'Achieve level 10 on Knight.', cost: 0 },
+    { id: 9, name: "Buy Dual Wield", passive_name:'Dual Wield', passive_id: 'passiveDualWield', requirement: 'Achieve level 10 on Rogue.', cost: 0 },
+    { id: 10, name: "Buy Arcane Infused", passive_name:'Arcane Infused', passive_id: 'passiveArcaneInfused', requirement: 'Achieve level 10 on Mage.', cost: 0 },
+    { id: 11, name: "Buy Life Steal", passive_name:'Life Steal', passive_id: 'passiveLifeSteal', requirement: 'Achieve level 10 on Vampire.', cost: 0 },
+    { id: 12, name: "Buy Poison Tip", passive_name:'Poison Tip', passive_id: 'passivePoisonTip', requirement: 'Achieve level 10 on Archer.', cost: 0 },
 ];
 
 // Handle purchase
@@ -209,6 +284,14 @@ const handlePurchase = (item) => {
         return;
       }
       updatePlayerActiveSkills(item.skill_id, true);
+      alert('Purchase successful!');
+    } else if (item.passive_id) {
+      // Handle passive purchase logic
+      if (player_ownedPassives[item.passive_id]?.isUnlocked === true) {
+        alert(`You already own the skill ${item.passive_id}`);
+        return;
+      }
+      updatePlayerOwnedPassives(item.passive_id, true);
       alert('Purchase successful!');
     }
     // Update money after successful purchase
@@ -240,17 +323,54 @@ const handleUnequipSkill = (skillId) => {
   setSelectedSkills(selectedSkills.filter(id => id !== skillId));
   updatePlayerActiveSkills(skillId, true, false);
 };
+
+//Handle equiping passives
+const handleEquipPassive = (passiveName, passiveId) => {
+  // Check if the passive exists in the descriptions
+  if (passiveDescriptions.find(p => p.name === passiveName)) {
+    // Check if the passive is already equipped
+    if (selectedPassives.some(p => p.id === passiveId)) {
+      alert("Passive is already equipped.");
+      return;
+    }
+    // Check if the maximum number of passives is reached
+    if (selectedPassives.length >= 3) {
+      alert("You can only equip up to 3 passives.");
+      return;
+    }
+    // Add the passive to the selectedPassives state
+    setSelectedPassives([...selectedPassives, { name: passiveName, id: passiveId }]);
+    updatePlayerOwnedPassives(passiveId, undefined, true); // Pass true to indicate equipped
+  } else {
+    alert("Couldn't find the passive to equip.");
+  }
+};
+
+const handleUnequipPassive = (passiveId) => {
+  // Remove the passive from the selectedPassives state
+  setSelectedPassives(selectedPassives.filter(passive => passive.id !== passiveId));
+  updatePlayerOwnedPassives(passiveId, undefined, false); // Pass false to indicate unequipped
+};
+
 //Constantly update the state to show the saved data
 useEffect(() => {
   const equippedSkills = Object.keys(player_activeSkills).filter(
     (skillId) => player_activeSkills[skillId]?.equipped
   );
   setSelectedSkills(equippedSkills);
-}, [player_activeSkills]);
+
+  const equippedPassives = Object.keys(player_ownedPassives)
+    .filter((passiveId) => player_ownedPassives[passiveId]?.equipped)
+    .map((passiveId) => ({
+      id: passiveId,
+      name: player_ownedPassives[passiveId]?.name
+    }));
+  setSelectedPassives(equippedPassives);
+}, [player_activeSkills, player_ownedPassives]);
 
 //Get details of the enemy in SelectStage
-const getEnemyDetails = (enemyName) => {
-  const enemy = characterList[enemyName];
+const getEnemyDetails = (enemyName, level) => {
+  const enemy = createCharacter(enemyName, level);
   if (!enemy) return null;
 
   return (
@@ -275,9 +395,30 @@ const getEnemyDetails = (enemyName) => {
                 key={passive}
               ></p>
             ))}
+        {enemy.passiveUnlocks &&
+          Object.entries(enemy.passiveUnlocks)
+            .filter(([unlockLevel]) => enemy.level < parseInt(unlockLevel))
+            .map(([unlockLevel, passive]) => (
+              <p key={passive}>
+                <strong>{passive}</strong>: Unlocks at level <strong>{unlockLevel}</strong>
+              </p>
+            ))}
           </div>
         ) : (
           <p>No passive</p>
+        )}
+      </div>
+      <p><b>Drops</b>: {enemy.money_drop} <b>money</b>, {enemy.experience_drop} <b>experience</b></p>
+      <div>
+        {enemy.lootTable && enemy.lootTable.length > 0 ? (
+          <ul>
+            {enemy.lootTable.map((lootItem, index) => (
+              <li key={index}>
+                <b>{lootItem.name}</b> - {lootItem.chance}% chance
+              </li>
+            ))}
+          </ul>
+        ) : (<></>
         )}
       </div>
     </div>
@@ -292,7 +433,7 @@ const handleModalClose = () => {
     {isShopOpen && (
       <div className="modal">
         <div className="modal-content">
-          <h2>Recruiting Guild</h2>
+          <h2>Shop</h2>
           
           {/* Tab Navigation */}
           <div className="tabs">
@@ -301,6 +442,12 @@ const handleModalClose = () => {
               onClick={() => setShopTab('characters')}
             >
               Characters
+            </button>
+            <button 
+              className={`tab-button ${shopTab === 'passives' ? 'active' : ''}`}
+              onClick={() => setShopTab('passives')}
+            >
+              Passives
             </button>
             <button 
               className={`tab-button ${shopTab === 'skills' ? 'active' : ''}`}
@@ -312,6 +459,8 @@ const handleModalClose = () => {
 
           {/* Tab Content */}
           {shopTab === 'characters' && (
+            <>
+            <span>You can recruit characters here</span>
             <ul style={{ paddingLeft: 5 }}>
               {shopItems
                 .filter((item) => item.character_id) // Filter for character shop items
@@ -351,9 +500,12 @@ const handleModalClose = () => {
                   );
                 })}
             </ul>
+            </>
           )}
 
           {shopTab === 'skills' && (
+            <>
+            <span>Purchase skills and equip up to 3 for use in battle!</span>
             <ul style={{ paddingLeft: 5 }}>
               {shopItems
                 .filter((item) => item.skill_id) // Filter for skill items only
@@ -416,8 +568,95 @@ const handleModalClose = () => {
                   );
                 })}
             </ul>
+            </>
           )}
 
+          {shopTab === 'passives' && (
+            <>
+            <span>Hover over to view obtainment method, equip up to 3 to apply for all your characters!</span>
+            <ul style={{ paddingLeft: 5 }}>
+              {shopItems
+                .filter((item) => item.passive_name)
+                .map((item) => {
+                  const passive = passiveDescriptions.find(p => p.name === item.passive_name);
+                  if (!passive) return null;
+
+                  // Get the cost of the passive from the shop item
+                  const cost = item.cost;
+                  const isUnlocked = player_ownedPassives[item.passive_id]?.isUnlocked;
+                  const isObtained = player_ownedPassives[item.passive_id]?.isObtained;
+                  const isEquipped = selectedPassives.some(passive => passive.name === item.passive_name);
+
+                  return (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%',
+                      }}
+                    >
+                      <span 
+                        style={{ cursor: 'help', textDecoration: 'underline', position: 'relative' }}
+                        title={`Requirement: ${item.requirement}\nEffect: ${passive.description}`}
+                      >
+                        {passive.name} - {item.cost}$ 
+                      </span>
+                      {!isObtained ? (
+                        <button
+                          disabled
+                          style={{
+                            cursor: 'not-allowed',
+                            backgroundColor: '#ccc',
+                            color: '#666',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '5px 10px',
+                          }}
+                        >
+                          Locked
+                        </button>
+                      ) : (
+                        !isUnlocked ? (
+                          <button
+                            onClick={() => handlePurchase(item)}
+                            disabled={money < cost}
+                            style={{
+                              cursor: money >= cost ? 'pointer' : 'not-allowed',
+                              backgroundColor: money >= cost ? '#28a745' : '#ff6666',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 10px',
+                            }}
+                          >
+                            {money >= cost ? 'Buy' : "Can't afford"}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              isEquipped ? handleUnequipPassive(item.passive_id) : handleEquipPassive(item.passive_name, item.passive_id);
+                            }}
+                            style={{
+                              cursor: 'pointer',
+                              backgroundColor: isEquipped ? '#007bff' : '#28a745',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '5px 10px',
+                            }}
+                          >
+                            {isEquipped ? 'Unequip' : 'Equip'}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
+            </ul>
+            </>
+          )}
           <button onClick={() => setIsShopOpen(false)}>Close</button>
         </div>
       </div>
@@ -435,6 +674,12 @@ const handleModalClose = () => {
                 {selectedSkills.map(skillId => {
                   const skill = activeSkills.find(s => s.id === skillId);
                   return <li key={skillId}>{skill?.name}</li>;
+                })}
+              </ul>
+              <h3>Equipped Passives:</h3>
+              <ul>
+                {selectedPassives.map(p => {
+                  return <li key={p.id}>{p.name}</li>;
                 })}
               </ul>
             </div>
@@ -457,11 +702,20 @@ const handleModalClose = () => {
                     <p>SPD: {playerCharacterStats.speed}</p>
                     <p>Passives:</p>
                     <div>
-                      {playerCharacterStats.passives.length > 0 ? (
+                      {playerCharacterStats.passives.length > 0 || playerCharacterStats.passiveUnlocks ? (
                         <div style={{ whiteSpace: 'pre-line' }}>
                           {playerCharacterStats.passives.map(passive => (
                             <p dangerouslySetInnerHTML={{ __html: getPassiveDescription(passive) }} key={passive}></p>
                           ))}
+                          {playerCharacterStats.passiveUnlocks && 
+                            Object.entries(playerCharacterStats.passiveUnlocks)
+                              .filter(([unlockLevel]) => playerCharacterStats.level < parseInt(unlockLevel))
+                              .map(([unlockLevel, passive]) => (
+                                <p key={passive}>
+                                  <strong>{passive}</strong>: Unlocks at level <strong>{unlockLevel}</strong>
+                                </p>
+                              ))
+                          }
                         </div>
                       ) : (
                         'No passive'
@@ -540,9 +794,9 @@ const handleModalClose = () => {
               <div className="modal-content">
                 <h2>{selectedStage.stageName} - Enemy Details</h2>
                 <div className="enemy-list">
-                  {Array.from(new Set(selectedStage.enemies.map((enemy) => enemy.name))).map((enemyName) =>
-                    getEnemyDetails(enemyName)
-                  )}
+                {Array.from(new Set(selectedStage.enemies.map((enemy) =>
+                    getEnemyDetails(enemy.name, enemy.level)
+                  )))}
                 </div>
                 <button
                   onClick={handleModalClose}
@@ -582,6 +836,7 @@ const handleModalClose = () => {
                   health={player.health}
                   maxHealth={player.maxHealth}
                   healthColor={playerHealthColor}
+                  shield={player.shield}
                 />
                 <p>Damage: {player.damage}</p>
                 <p>SPD: {player.speed}</p>
@@ -610,9 +865,11 @@ const handleModalClose = () => {
                             className="status-effect-image"
                             title={effect.description}
                           />
-                          <span className="status-effect-duration">
-                            {effect.duration === null ? effect.stackCount : effect.duration}
-                          </span>
+                          {(effect.duration !== null || effect.stackCount !== null) && (
+                            <span className="status-effect-duration">
+                              {effect.duration ?? effect.stackCount}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))
@@ -636,6 +893,7 @@ const handleModalClose = () => {
                   health={enemy.health}
                   maxHealth={enemy.maxHealth}
                   healthColor={enemyHealthColor}
+                  shield={enemy.shield}
                 />
                 <p>Damage: {enemy.damage}</p>
                 <p>SPD: {enemy.speed}</p>
@@ -662,11 +920,17 @@ const handleModalClose = () => {
                             src={effect.image || '/StatusEffectImage/default.png'}
                             alt={effect.name}
                             className="status-effect-image"
-                            title={effect.description}
+                            title={
+                              effect.damage !== undefined
+                                ? `${effect.description} | Damage: ${effect.damage}`
+                                : effect.description
+                            }
                           />
-                          <span className="status-effect-duration">
-                            {effect.duration === null ? effect.stackCount : effect.duration}
-                          </span>
+                          {(effect.duration !== null || effect.stackCount !== null) && (
+                            <span className="status-effect-duration">
+                              {effect.duration ?? effect.stackCount}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))
@@ -698,6 +962,8 @@ const handleModalClose = () => {
               enemyPassives={enemy.passives}
               gameEnded={gameEnded}
               selectedSkills={selectedSkills}
+              player_ownedPassives={player_ownedPassives}
+              updatePlayerOwnedPassives={updatePlayerOwnedPassives}
             />
           </div>
         </>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function HealthBar({ health, maxHealth, healthColor }) {
+function HealthBar({ health, maxHealth, healthColor, shield }) {
   const [displayedHealth, setDisplayedHealth] = useState(health);
 
   // Immediately update displayedHealth when health changes
@@ -9,6 +9,7 @@ function HealthBar({ health, maxHealth, healthColor }) {
   }, [health]);
 
   const healthPercentage = (displayedHealth / maxHealth) * 100;
+  const shieldPercentage = (shield / maxHealth) * 100;
 
   return (
     <div
@@ -32,6 +33,19 @@ function HealthBar({ health, maxHealth, healthColor }) {
           position: 'relative',
         }}
       />
+      <div
+        className="shield-bar"
+        style={{
+          width: `${shieldPercentage}%`,
+          height: '100%',
+          background: 'rgba(0, 0, 255, 0.5)', // Semi-transparent blue for the shield
+          borderRadius: '5px 0 0 5px',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          zIndex: 1, // Ensure it overlays below health text but above the health bar
+        }}
+      ></div>
       <div
         className="health-text"
         style={{
