@@ -803,30 +803,42 @@ const enemyDetailsClose = () => {
                 </p>
                 {/* Level Adjuster */}
                 <div>
-                  <label>
-                    Set Stage Level: 
-                    <input
-                      type="number"
-                      min="1"
-                      value={stage.level || 1}
-                      onChange={(e) => {
-                        const newLevel = parseInt(e.target.value, 10) || 1;
+                <label>
+                  Set Stage Level: 
+                  <input
+                    type="number"
+                    placeholder="1"
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
+                      if (inputValue <= 0){
+                        e.target.value = "";
+                      }
+                      // If input is empty or a positive integer, update state
+                      if (inputValue === '' || (parseInt(inputValue, 10) >= 1)) {
+                        const newLevel = inputValue === '' ? 1 : parseInt(inputValue, 10);
+                        e.target.value = newLevel;
                         const updatedStageData = [...stageData];
                         updatedStageData[index].level = newLevel;
-                        updatedStageData[index].enemies.forEach((enemy) => {
-                          enemy.level = newLevel;
-                        });
+
+                        // Update the enemies' levels if newLevel is not empty
+                        if (newLevel !== '') {
+                          updatedStageData[index].enemies.forEach((enemy) => {
+                            enemy.level = newLevel;
+                          });
+                        }
+
                         setStageData(updatedStageData);
-                      }}
-                      style={{
-                        width: '60px',
-                        marginLeft: '10px',
-                        padding: '5px',
-                        borderRadius: '5px',
-                        border: '1px solid #ccc',
-                      }}
-                    />
-                  </label>
+                      }
+                    }}
+                    style={{
+                      width: '60px',
+                      marginLeft: '10px',
+                      padding: '5px',
+                      borderRadius: '5px',
+                      border: '1px solid #ccc',
+                    }}
+                  />
+                </label>
                 </div>
                 <button
                   onClick={() => selectStage(index)}
