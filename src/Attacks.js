@@ -195,7 +195,8 @@ const removeStatusEffect = (setEntity, buffName) => {
 };
 
 // Function to give shield to a character
-const giveShield = (setEntity, shieldAmount) => {
+const giveShield = (setEntity, shieldAmount, entity) => {
+  console.log(entity.name, " gained ", shieldAmount, " shield.");
   setEntity(prevEntity => ({
     ...prevEntity,
     shield: prevEntity.shield + shieldAmount
@@ -255,7 +256,7 @@ const doDamage = async (
     const maxHealth = prevDefender.maxHealth;
     let updatedShield = prevDefender.shield || 0;
     let updatedHealth = prevDefender.health;
-
+    console.log(attacker.name, " deals ", attackerDamage, " to ", defender.name);
     if (updatedShield > 0) {
       if (remainingDamage > updatedShield) {
         // Damage exceeds shield, reduce health with remaining damage
@@ -326,11 +327,6 @@ const doDamage = async (
     setAttacker((prevAttacker) => {
       const healedHealth = prevAttacker.health + attackerDamage / 2;
       flashHealthColor("lightblue", setAttackerHealthColor);
-      console.log(
-        `${defenderSide === "Player" ? "Enemy" : "Player"} healing: ${
-          prevAttacker.health
-        } + ${attackerDamage / 2} = ${Math.min(healedHealth, prevAttacker.maxHealth)}`
-      );
       return { ...prevAttacker, health: Math.min(healedHealth, prevAttacker.maxHealth) };
     });
   }
@@ -355,7 +351,7 @@ const doDamage = async (
       const newHealth = prevAttacker.health - retaliateDamage;
       flashHealthColor("red", setAttackerHealthColor);
       console.log(
-        `Retaliate triggered! ${prevAttacker.name} took ${retaliateDamage} damage.`
+        `${prevAttacker.name} took ${retaliateDamage} damage from retaliation.`
       );
       return { ...prevAttacker, health: Math.max(newHealth, 0) };
     });
@@ -409,6 +405,7 @@ const doHeal = async (
   // Heal the user
   setAttacker((prevAttacker) => {
     const newHealth = prevAttacker.health + attackerDamage;
+    console.log(attacker.name, " heals for ", attackerDamage);
     flashHealthColor("lightblue", setAttackerHealthColor);
     return { ...prevAttacker, health: Math.min(newHealth, prevAttacker.maxHealth) };
   });
@@ -423,8 +420,9 @@ const createPassiveUndeadRageHandler = () => {
   return async (user, target, userDamage, setUser, setTarget) => {
     if (hasRun) return; // Exit early if the function has already run
 
+    console.log(user.name, " activates Undead Rage passive!");
     hasRun = true; // Mark the function as executed
-    giveShield(setUser, user.maxHealth * 0.5);
+    giveShield(setUser, user.maxHealth * 0.5, user);
     inflictStatusEffects(setUser, 'damageUp', undefined, 3);
   };
 };
@@ -479,7 +477,7 @@ const arcaneAssault = async (attacker, target, attackerDamage, setAnimation, ...
 };
 
 const mysticAegis = async (attacker, target, attackerDamage, setAnimation, ...args) => {
-  giveShield(args[5], attacker.maxHealth*0.5);
+  giveShield(args[5], attacker.maxHealth*0.5, attacker);
   inflictStatusEffects(args[5], "codexVenomousVerse");
   removeStatusEffect(args[5], "codexMysticAegis");
 };
@@ -527,6 +525,7 @@ function Attack({
   selectedSkills,
   player_ownedPassives,
   updatePlayerOwnedPassives,
+  logs,
 }) {
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [cooldowns, setCooldowns] = useState(
@@ -684,6 +683,7 @@ function Attack({
   ]);
 
   return (
+    <>
     <div>
       <div className="active-skills">
         {activeSkills
@@ -701,6 +701,21 @@ function Attack({
         ))}
       </div>
     </div>
-  );
-}
+    <div
+    style={{
+      maxHeight: '200px',
+      overflowY: 'auto',
+      border: '1px solid #ccc',
+      padding: '10px',
+      backgroundColor: '#f9f9f9',
+    }}
+    >
+      {logs.length === 0 ? (
+        <></>
+      ) : (
+        logs.map((log, index) => <p key={index} style={{ margin: 0 }}>{log}</p>)
+      )}
+    </div>
+  </>
+)}
 export default Attack;

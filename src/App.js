@@ -11,7 +11,7 @@ import SaveManager from './SaveManager';
 import { motion } from "framer-motion"
 import { statusEffects } from './statusEffects.js';
 
-const stageData = [
+const initialStageData = [
   {
     stageName: 'Graveyard',
     enemies: [
@@ -55,12 +55,36 @@ function App() {
   //Manage shop UI
   const [shopTab, setShopTab] = useState('characters');
   const [isShopOpen, setIsShopOpen] = useState(false);
-
+  //Manage stage data
+  const [stageData, setStageData] = useState(initialStageData);
   //Manage and load player data
   const { money, player_characters, player_activeSkills, player_ownedPassives, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, saveGame } = SaveManager();
   useEffect(() => {
     saveGame(money, player_characters, player_activeSkills, player_ownedPassives);
   }, [money, player_characters, player_activeSkills, player_ownedPassives, saveGame]);
+
+  const [logs, setLogs] = useState([]); // State to store logs
+  useEffect(() => {
+    // Save the original console.log function
+    const originalConsoleLog = console.log;
+
+    // Override console.log
+    console.log = (...args) => {
+      // Create the log message
+      const logMessage = args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
+
+      // Add the new log to the state
+      setLogs((prevLogs) => [...prevLogs, logMessage]);
+
+      // Call the original console.log so it still logs to the console
+      originalConsoleLog(...args);
+    };
+
+    // Cleanup: Restore the original console.log on component unmount
+    return () => {
+      console.log = originalConsoleLog;
+    };
+  }, []);
 
   useEffect(() => {
     const passivesToMakeObtained = {
@@ -178,12 +202,13 @@ function App() {
 
   useEffect(() => {
     if (enemyQueue && enemyQueue.length > 0) {
-        startGame();
+      startGame();
     }
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [enemyQueue]);
 
   const startGame = () =>{
+    setLogs([]);
     //Set enemy
     let enemyCharacter = enemyQueue[currentEnemyIndex];
     setEnemy(enemyQueue[currentEnemyIndex]);
@@ -425,7 +450,7 @@ const getEnemyDetails = (enemyName, level) => {
   );
 };
 
-const handleModalClose = () => {
+const enemyDetailsClose = () => {
   setSelectedStage(null);
 };
   return (
@@ -745,6 +770,33 @@ const handleModalClose = () => {
                 <p>
                   Enemies: {stage.enemies.map((enemy) => characterList[enemy.name].name).join(', ')}
                 </p>
+                {/* Level Adjuster */}
+                <div>
+                  <label>
+                    Set Stage Level: 
+                    <input
+                      type="number"
+                      min="1"
+                      value={stage.level || 1}
+                      onChange={(e) => {
+                        const newLevel = parseInt(e.target.value, 10) || 1;
+                        const updatedStageData = [...stageData];
+                        updatedStageData[index].level = newLevel;
+                        updatedStageData[index].enemies.forEach((enemy) => {
+                          enemy.level = newLevel;
+                        });
+                        setStageData(updatedStageData);
+                      }}
+                      style={{
+                        width: '60px',
+                        marginLeft: '10px',
+                        padding: '5px',
+                        borderRadius: '5px',
+                        border: '1px solid #ccc',
+                      }}
+                    />
+                  </label>
+                </div>
                 <button
                   onClick={() => selectStage(index)}
                   style={{
@@ -799,7 +851,7 @@ const handleModalClose = () => {
                   )))}
                 </div>
                 <button
-                  onClick={handleModalClose}
+                  onClick={enemyDetailsClose}
                   style={{
                     marginTop: '20px',
                     padding: '10px',
@@ -964,6 +1016,7 @@ const handleModalClose = () => {
               selectedSkills={selectedSkills}
               player_ownedPassives={player_ownedPassives}
               updatePlayerOwnedPassives={updatePlayerOwnedPassives}
+              logs={logs}
             />
           </div>
         </>
@@ -994,6 +1047,22 @@ const handleModalClose = () => {
               )}
             </>
           )}
+          <h3>Battle logs:</h3>
+          <div
+          style={{
+            maxHeight: '200px',
+            overflowY: 'auto',
+            border: '1px solid #ccc',
+            padding: '10px',
+            backgroundColor: '#f9f9f9',
+          }}
+          >
+            {logs.length === 0 ? (
+              <></>
+            ) : (
+              logs.map((log, index) => <p key={index} style={{ margin: 0 }}>{log}</p>)
+            )}
+          </div>
           <button onClick={restartGame}>Return</button>
         </div>
       )}
