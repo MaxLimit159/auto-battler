@@ -187,6 +187,10 @@ function App() {
   const [countdown, setCountdown] = useState(5);  // Timer starting at 5 seconds
   const [timerActive, setTimerActive] = useState(false);
   const nextBattleTimer = useRef(null);
+  const [battleAgain, setBattleAgain] = useState(false);
+  const toggleBattleAgain = () => {
+    setBattleAgain((prev) => !prev); // Toggles the state
+  };
 
   const selectCharacter = (characterId) => {
     //Remember the id
@@ -207,11 +211,16 @@ function App() {
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [enemyQueue]);
 
-  const startGame = () =>{
+  const startGame = (enemyIndex) =>{
     setLogs([]);
     //Set enemy
-    let enemyCharacter = enemyQueue[currentEnemyIndex];
-    setEnemy(enemyQueue[currentEnemyIndex]);
+    let enemyCharacter
+    if (enemyIndex !== undefined && enemyIndex !== null) { 
+      enemyCharacter = enemyQueue[enemyIndex];
+    } else {
+      enemyCharacter = enemyQueue[currentEnemyIndex];
+    }
+    setEnemy(enemyCharacter);
     //Set player
     let playerCharacter = createCharacter(currentPlayerId, player_characters[currentPlayerId].level, player_characters[currentPlayerId].experience);
     setPlayer(playerCharacter);
@@ -244,11 +253,33 @@ function App() {
           return prev - 1;
         });
       }, 1000);
-    } else {
-      // End battle sequence
+    } else if(battleAgain){
+      //Set enemy back to the first
+      setCurrentEnemyIndex(0);
+      gameEnded.current = false;
+
+      //Go to EndBattle
       setMode('EndBattle');
       setWinner(winner);
-    }
+
+      //Start COuntdown
+      setCountdown(5);
+      setTimerActive(true);
+      nextBattleTimer.current = setInterval(() => {
+          setCountdown(prev => {
+            if (prev === 1) {
+              clearInterval(nextBattleTimer.current);  // Stop the countdown
+              setTimerActive(false);
+              startGame(0);  // Start the next battle with the first enemy index
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        // End battle sequence
+        setMode('EndBattle');
+        setWinner(winner);
+      }
   };
 
   const restartGame = () => {
@@ -840,7 +871,11 @@ const enemyDetailsClose = () => {
           >
             Back
           </button>
-
+          <div className="battle-again-container">
+            <button className="battle-again-button" onClick={toggleBattleAgain}>
+              {battleAgain ? 'Auto battle again: Enabled' : 'Auto battle again: Disabled'}
+            </button>
+          </div>
           {selectedStage && (
             <div className="modal">
               <div className="modal-content">
@@ -993,7 +1028,11 @@ const enemyDetailsClose = () => {
               </motion.div>
             </div>
             <p>{turn === 'Player' ? 'Waiting for player...' : 'Waiting for enemy...'}</p>
-
+            <div className="battle-again-container">
+              <button className="battle-again-button" onClick={toggleBattleAgain}>
+                {battleAgain ? 'Auto battle again: Enabled' : 'Auto battle again: Disabled'}
+              </button>
+            </div>
             {/* Attack component that handles the combat logics */}
             <Attack
               updateMoney={updateMoney}
