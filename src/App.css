@@ -275,3 +275,27 @@ button:disabled {
 html {
   user-select: none;
 }
+
+.battle-again-container {
+  position: fixed;
+  top: 50%; /* Center vertically */
+  right: 20px; /* Distance from the right */
+  transform: translateY(-50%); /* Adjust for vertical centering */
+  z-index: 1000; /* Ensure it stays on top of other elements */
+}
+
+.battle-again-button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+.battle-again-button:hover {
+  background-color: #0056b3;
+}
