@@ -816,7 +816,6 @@ const enemyDetailsClose = () => {
                       // If input is empty or a positive integer, update state
                       if (inputValue === '' || (parseInt(inputValue, 10) >= 1)) {
                         const newLevel = inputValue === '' ? 1 : parseInt(inputValue, 10);
-                        e.target.value = newLevel;
                         const updatedStageData = [...stageData];
                         updatedStageData[index].level = newLevel;
 
