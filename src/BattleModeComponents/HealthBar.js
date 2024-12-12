@@ -50,7 +50,7 @@ function HealthBar({ health, maxHealth, healthColor, shield }) {
         className="health-text"
         style={{
           position: 'absolute',
-          top: '3px',
+          top: '20%',
           left: '50%',
           transform: 'translateX(-50%)',
           fontWeight: 'bold',

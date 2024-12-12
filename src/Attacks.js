@@ -535,6 +535,27 @@ function Attack({
     }, {})
   );
 
+  //Calculate aniamtion distance based on viewport size
+  useEffect(() => {
+    const screenWidth = window.innerWidth;
+  
+    // Calculate the attack distance based on the screen width
+    const playerAttackDistance = screenWidth <= 768 ? screenWidth * 0.5 : undefined;
+    const enemyAttackDistance = screenWidth <= 768 ? screenWidth * 0.5 : undefined;
+  
+    if(playerAttackDistance && enemyAttackDistance){
+      animationVarriants.playerAttack = {
+        ...animationVarriants.playerAttack,
+        x: [0, playerAttackDistance, playerAttackDistance, 0],
+      };
+    
+      animationVarriants.enemyAttack = {
+        ...animationVarriants.enemyAttack,
+        x: [0, -enemyAttackDistance, -enemyAttackDistance, 0],
+      };
+    }
+  })
+
   //Refresh one-time use functions when a battle starts
   useEffect(() => {
     playerHandlePassiveUndeadRage = createPassiveUndeadRageHandler();

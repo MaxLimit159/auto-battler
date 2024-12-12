@@ -484,13 +484,41 @@ const getEnemyDetails = (enemyName, level) => {
 const enemyDetailsClose = () => {
   setSelectedStage(null);
 };
+
+const togglePassivesExpand = (side) => {
+  // Find the container based on the 'side' (player or enemy)
+  const container = document.querySelector(`.character-passives-container-${side}`);
+  const passivesContainer = container.querySelector('.character-passives');
+  const button = container.querySelector('.expand-button');
+
+  if (passivesContainer && button) {
+    // Toggle visibility
+    const isExpanded = passivesContainer.classList.contains('expanded');
+    if (isExpanded) {
+      passivesContainer.classList.remove('expanded');
+      button.textContent = 'Show More';
+    } else {
+      passivesContainer.classList.add('expanded');
+      button.textContent = 'Show Less';
+    }
+  }
+};
+
+const handleRootClick = (event) => {
+  // Check if the clicked element is not inside a modal
+  if (!event.target.closest('.modal') && !event.target.closest('.modal-open-button')) {
+    // Reset states
+    setSelectedStage(null);
+    setIsShopOpen(false);
+  }
+};
+
   return (
-    <>
+    <div className="app-container" onClick={handleRootClick}>
     {isShopOpen && (
-      <div className="modal">
+      <div className="modal" id="shop-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-content">
           <h2>Shop</h2>
-          
           {/* Tab Navigation */}
           <div className="tabs">
             <button 
@@ -726,21 +754,17 @@ const enemyDetailsClose = () => {
             <p>Money: {money}$</p>
             <div style={{ marginTop: "10px" }}>
               <h3>Equipped Skills:</h3>
-              <ul>
                 {selectedSkills.map(skillId => {
                   const skill = activeSkills.find(s => s.id === skillId);
                   return <li key={skillId}>{skill?.name}</li>;
                 })}
-              </ul>
               <h3>Equipped Passives:</h3>
-              <ul>
                 {selectedPassives.map(p => {
                   return <li key={p.id}>{p.name}</li>;
                 })}
-              </ul>
             </div>
             {/* <button onClick={handleSaveGame}>Save Game</button> */}
-            <button onClick={() => setIsShopOpen(true)}>Open Shop</button>
+            <button className='modal-open-button' onClick={() => setIsShopOpen(true)}>Open Shop</button>
           </div>
           <h1>Select Your Character</h1>
           <div className="character-list">
@@ -748,7 +772,7 @@ const enemyDetailsClose = () => {
               if (characterList[id].playable) {
                 let playerCharacterStats = createCharacter(id, player_characters[id].level, player_characters[id].experience);
                 return (
-                  <div key={id} className="character-item">
+                  <div key={id} className="character-item-start">
                     <img src={playerCharacterStats.image || '/CharacterImage/default.png'} alt={playerCharacterStats.name} />
                     <h2>{playerCharacterStats.name}</h2>
                     <p>Level: {playerCharacterStats.level}</p>
@@ -756,8 +780,8 @@ const enemyDetailsClose = () => {
                     <p>HP: {playerCharacterStats.health}</p>
                     <p>DMG: {playerCharacterStats.damage}</p>
                     <p>SPD: {playerCharacterStats.speed}</p>
+                    <div className="character-passives-start">
                     <p>Passives:</p>
-                    <div>
                       {playerCharacterStats.passives.length > 0 || playerCharacterStats.passiveUnlocks ? (
                         <div style={{ whiteSpace: 'pre-line' }}>
                           {playerCharacterStats.passives.map(passive => (
@@ -853,6 +877,7 @@ const enemyDetailsClose = () => {
                   Select Stage
                 </button>
                 <button
+                  className='modal-open-button'
                   onClick={() => setSelectedStage(stage)}
                   style={{
                     cursor: 'pointer',
@@ -884,11 +909,11 @@ const enemyDetailsClose = () => {
           </button>
           <div className="battle-again-container">
             <button className="battle-again-button" onClick={toggleBattleAgain}>
-              {battleAgain ? 'Auto battle again: Enabled' : 'Auto battle again: Disabled'}
+              {battleAgain ? 'Auto Battle: Enabled' : 'Auto Battle: Disabled'}
             </button>
           </div>
           {selectedStage && (
-            <div className="modal">
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-content">
                 <h2>{selectedStage.stageName} - Enemy Details</h2>
                 <div className="enemy-list">
@@ -938,17 +963,22 @@ const enemyDetailsClose = () => {
                 />
                 <p>Damage: {player.damage}</p>
                 <p>SPD: {player.speed}</p>
-                <p>Passives:</p>
-                <div>
-                  {player.passives.length > 0 ? (
-                    <div style={{ whiteSpace: 'pre-line' }}>
-                      {player.passives.map(passive => (
-                        <p dangerouslySetInnerHTML={{ __html: getPassiveDescription(passive) }} key={passive}></p>
-                      ))}
-                    </div>
-                  ) : (
-                    'No passive'
-                  )}
+                <div class="character-passives-container-player">
+                  <div className={`character-passives`}>
+                  <p>Passives:</p>
+                    {player.passives.length > 0 ? (
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {player.passives.map(passive => (
+                          <p dangerouslySetInnerHTML={{ __html: getPassiveDescription(passive) }} key={passive}></p>
+                        ))}
+                      </div>
+                    ) : (
+                      'No passive'
+                    )}
+                  </div>
+                  <button className="expand-button" onClick={() => togglePassivesExpand('player')}>
+                    Show More
+                  </button>
                 </div>
 
                 {/* Display Player's Status Effects */}
@@ -995,17 +1025,22 @@ const enemyDetailsClose = () => {
                 />
                 <p>Damage: {enemy.damage}</p>
                 <p>SPD: {enemy.speed}</p>
-                <p>Passives:</p>
-                <div>
-                  {enemy.passives.length > 0 ? (
-                    <div style={{ whiteSpace: 'pre-line' }}>
-                      {enemy.passives.map(passive => (
-                        <p dangerouslySetInnerHTML={{ __html: getPassiveDescription(passive) }} key={passive}></p>
-                      ))}
-                    </div>
-                  ) : (
-                    'No passive'
-                  )}
+                <div class="character-passives-container-enemy">
+                  <div className={`character-passives`}>
+                  <p>Passives:</p>
+                    {enemy.passives.length > 0 ? (
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {enemy.passives.map(passive => (
+                          <p dangerouslySetInnerHTML={{ __html: getPassiveDescription(passive) }} key={passive}></p>
+                        ))}
+                      </div>
+                    ) : (
+                      'No passive'
+                    )}
+                  </div>
+                  <button className="expand-button" onClick={() => togglePassivesExpand('enemy')}>
+                    Show More
+                  </button>
                 </div>
 
                 {/* Display Enemy's Status Effects */}
@@ -1039,11 +1074,13 @@ const enemyDetailsClose = () => {
               </motion.div>
             </div>
             <p>{turn === 'Player' ? 'Waiting for player...' : 'Waiting for enemy...'}</p>
-            <div className="battle-again-container">
-              <button className="battle-again-button" onClick={toggleBattleAgain}>
-                {battleAgain ? 'Auto battle again: Enabled' : 'Auto battle again: Disabled'}
-              </button>
-            </div>
+            {battleAgain && (
+              <div className="battle-again-container">
+                <button className="battle-again-button" onClick={toggleBattleAgain}>
+                  Cancel Auto Battle
+                </button>
+              </div>
+            )}
             {/* Attack component that handles the combat logics */}
             <Attack
               updateMoney={updateMoney}
@@ -1117,7 +1154,7 @@ const enemyDetailsClose = () => {
         </div>
       )}
     </div>
-    </>
+    </div>
   );
 }
 
