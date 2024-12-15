@@ -1,4 +1,5 @@
 import './App.css';
+import 'font-awesome/css/font-awesome.min.css';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Attack from './Attacks.js'; // Import the new Attack component
 import HealthBar from './BattleModeComponents/HealthBar.js';
@@ -10,6 +11,8 @@ import { activeSkills } from './activeSkills.js';
 import SaveManager from './SaveManager';
 import { motion } from "framer-motion"
 import { statusEffects } from './statusEffects.js';
+import Authentication from './authentication';
+import AccountSettings from './AccountSettings';
 
 const initialStageData = [
   {
@@ -52,16 +55,18 @@ function App() {
   const [playerAnimation, setPlayerAnimation] = useState("idle");
   const [enemyAnimation, setEnemyAnimation] = useState("idle");
   const baseCharacterList = JSON.parse(JSON.stringify(characterList));
+  //User stats UI
+  const [isUserStatsVisible, setIsUserStatsVisible] = useState(true);
+  const toggleUserStats = () => {
+    setIsUserStatsVisible(!isUserStatsVisible); // Toggle visibility of the user stats display
+  };
   //Manage shop UI
   const [shopTab, setShopTab] = useState('characters');
   const [isShopOpen, setIsShopOpen] = useState(false);
   //Manage stage data
   const [stageData, setStageData] = useState(initialStageData);
   //Manage and load player data
-  const { money, player_characters, player_activeSkills, player_ownedPassives, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, saveGame } = SaveManager();
-  useEffect(() => {
-    saveGame(money, player_characters, player_activeSkills, player_ownedPassives);
-  }, [money, player_characters, player_activeSkills, player_ownedPassives, saveGame]);
+  const { money, player_characters, player_activeSkills, player_ownedPassives, selectedPassives, selectedSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, saveGame, setSelectedPassives, setSelectedSkills } = SaveManager();
 
   const [logs, setLogs] = useState([]); // State to store logs
   useEffect(() => {
@@ -180,8 +185,9 @@ function App() {
   const [enemyQueue, setEnemyQueue] = useState(null);
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
   const [currentPlayerId, setCurrentPlayerId] = useState();
-  const [selectedSkills, setSelectedSkills] = useState([]);
-  const [selectedPassives, setSelectedPassives] = useState([]);
+
+  // const [selectedSkills, setSelectedSkills] = useState([]);
+  // const [selectedPassives, setSelectedPassives] = useState([]);
 
   //Timer for next battle states
   const [countdown, setCountdown] = useState(5);  // Timer starting at 5 seconds
@@ -422,6 +428,7 @@ useEffect(() => {
       name: player_ownedPassives[passiveId]?.name
     }));
   setSelectedPassives(equippedPassives);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [player_activeSkills, player_ownedPassives]);
 
 //Get details of the enemy in SelectStage
@@ -506,19 +513,28 @@ const togglePassivesExpand = (side) => {
 
 const handleRootClick = (event) => {
   // Check if the clicked element is not inside a modal
-  if (!event.target.closest('.modal') && !event.target.closest('.modal-open-button')) {
+  if (!event.target.closest('.modal') && !event.target.closest('.modal-open-button') && !event.target.closest('.user-stats-display')) {
     // Reset states
     setSelectedStage(null);
     setIsShopOpen(false);
   }
 };
 
+const [user, setUser] = useState(null); // Track the current user
+useEffect(() => {
+  if (user) {
+    saveGame(money, player_characters, player_activeSkills, player_ownedPassives);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [money, player_characters, player_activeSkills, player_ownedPassives]);
+
   return (
-    <div className="app-container" onClick={handleRootClick}>
+  <div className="app-container" onClick={handleRootClick}>
     {isShopOpen && (
       <div className="modal" id="shop-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-content">
           <h2>Shop</h2>
+          <span>Money: {money}$</span>
           {/* Tab Navigation */}
           <div className="tabs">
             <button 
@@ -741,7 +757,7 @@ const handleRootClick = (event) => {
             </ul>
             </>
           )}
-          <button onClick={() => setIsShopOpen(false)}>Close</button>
+          <button id={"close-button"} onClick={() => {setIsShopOpen(false); setIsUserStatsVisible(true)}}>Close</button>
         </div>
       </div>
     )}
@@ -750,21 +766,42 @@ const handleRootClick = (event) => {
       {mode === "Start" && (
         <>
           <div className="user-stats-display">
-            <h3>User Menu</h3>
-            <p>Money: {money}$</p>
-            <div style={{ marginTop: "10px" }}>
-              <h3>Equipped Skills:</h3>
-                {selectedSkills.map(skillId => {
-                  const skill = activeSkills.find(s => s.id === skillId);
-                  return <li key={skillId}>{skill?.name}</li>;
-                })}
-              <h3>Equipped Passives:</h3>
-                {selectedPassives.map(p => {
-                  return <li key={p.id}>{p.name}</li>;
-                })}
-            </div>
-            {/* <button onClick={handleSaveGame}>Save Game</button> */}
-            <button className='modal-open-button' onClick={() => setIsShopOpen(true)}>Open Shop</button>
+            {/* Button to toggle visibility */}
+            <span className="user-stats-toggle" onClick={toggleUserStats}>
+              {isUserStatsVisible ? (
+                <i className="fa fa-chevron-down"></i>
+              ) : (
+                <i className="fa fa-chevron-up"></i>
+              )}
+            </span>
+
+            {/* Conditionally render the user stats display */}
+            {isUserStatsVisible && (
+              <div>
+                {/* User Stats Display */}
+                <Authentication user={user} setUser={setUser} />
+                <p>Money: {money}$</p>
+                <div style={{ marginTop: "10px" }}>
+                  <h3>Equipped Skills:</h3>
+                  <ul>
+                    {selectedSkills.map(skillId => {
+                      const skill = activeSkills.find(s => s.id === skillId);
+                      return <li key={skillId}>{skill?.name}</li>;
+                    })}
+                  </ul>
+                  <h3>Equipped Passives:</h3>
+                  <ul>
+                    {selectedPassives.map(p => {
+                      return <li key={p.id}>{p.name}</li>;
+                    })}
+                  </ul>
+                </div>
+                {/* Button to open the shop */}
+                <button className="modal-open-button" onClick={() => {setIsShopOpen(true); setIsUserStatsVisible(false)}}>
+                  Open Shop
+                </button>
+              </div>
+            )}
           </div>
           <h1>Select Your Character</h1>
           <div className="character-list">
@@ -812,6 +849,11 @@ const handleRootClick = (event) => {
               return null;
             })}
           </div>
+          { user? (
+          <div className='user-settings-display'>
+            <AccountSettings user={user} setUser={setUser}/>
+          </div>
+          ) : (<></>)}
         </>
       )}
 
@@ -924,8 +966,6 @@ const handleRootClick = (event) => {
                 <button
                   onClick={enemyDetailsClose}
                   style={{
-                    marginTop: '20px',
-                    padding: '10px',
                     backgroundColor: 'red',
                     color: 'white',
                     border: 'none',
@@ -1154,7 +1194,7 @@ const handleRootClick = (event) => {
         </div>
       )}
     </div>
-    </div>
+  </div>
   );
 }
 
