@@ -1,304 +1,8 @@
 /* General Styles */
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f5f5f5;
-  margin: 0;
-  padding: 0;
-  text-align: center;
-}
-
-h1 {
-  color: #333;
-  margin-top: 20px;
-}
-
-/* Container Styles */
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Button Styles */
-button {
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  margin: 5px;
-  transition: background-color 0.3s;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-/* Character Selection Styles */
-.character-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
-}
-
-.character-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  background-color: #e9ecef;
-  border-radius: 8px;
-  padding: 10px;
-  width: 200px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.character-item > img {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-.character-item h2 {
-  margin: 10px 0 5px;
-}
-
-.character-item p {
-  margin: 5px 0;
-}
-
-/* Battle Menu Styles */
-.battle-menu {
-  margin-top: 20px;
-}
-
-.battle-space {
-  display: flex;
-  justify-content: space-between;
-}
-
-.battle-menu p {
-  font-size: 18px;
-  margin: 10px 0;
-}
-
-/* End Battle Styles */
-.end-battle {
-  margin-top: 20px;
-}
-
-.character-item.active-turn {
-  border: 2px solid #000000;
-  border-radius: 5px;
-  padding: 10px;
-}
-
-.user-stats-display {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background-color: white;
-  color: black;
-  padding: 10px;
-  border-radius: 5px;
-  text-align: center;
-  z-index: 1000;
-}
-
-.user-stats-display button {
-  margin-top: 10px;
-}
-
-.status-effects {
-  display: flex;
-  gap: 4px; /* Reduced gap between status effects */
-  flex-wrap: wrap; /* Allows status effects to wrap to the next line */
-}
-
-.status-effect-item {
-  position: relative;
-  width: 30px;  /* Smaller fixed width for the status effect item */
-  height: 30px; /* Smaller fixed height for the status effect item */
-}
-
-.status-effect-wrapper {
-  position: relative;
-  width: 100%;  /* Ensure the wrapper takes full size of the item */
-  height: 100%;
-}
-
-.status-effect-image {
-  width: 100%; /* Set image to fit within the wrapper */
-  height: 100%;
-  object-fit: contain; /* Ensure the image fits inside without cropping */
-  border-radius: 4px; /* Rounded corners */
-  border: 1px solid #ccc;
-}
-
-.status-effect-duration {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  font-size: 10px;
-  padding: 1px 2px;
-  border-radius: 2px;
-}
-
-.health-bar-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.health-bar {
-  transition: width 0.1s ease-in-out; /* Smooth animation */
-}
-
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 20px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  z-index: 1000;
-}
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.enemy-details {
-  padding: 15px;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #ddd;
-}
-
-.enemy-image {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.enemy-details h2 {
-  font-size: 1.2rem;
-  margin: 10px 0;
-  color: #333;
-}
-
-.enemy-details p {
-  margin: 5px 0;
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.modal h2 {
-  margin: 0;
-}
-
-.modal button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 10px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.modal button:hover {
-  background-color: #0056b3;
-}
-
-.modal button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.tabs {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 15px;
-}
-
-.tab-button {
-  padding: 8px 16px;
-  border: 1px solid #ccc;
-  background-color: #f9f9f9; /* Light background for inactive tabs */
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: all 0.2s ease; /* Smooth transitions for hover and active states */
-}
-
-.tab-button.active {
-  background-color: #4CAF50; /* Prominent green for the active tab */
-  border-color: #388E3C; /* Darker green for border */
-  color: white; /* White text for contrast */
-  font-weight: bold; /* Make text bold for prominence */
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-  transform: translateY(-2px); /* Slightly raised effect */
-  pointer-events: none;
-}
-
-.tab-button:hover:not(.active) {
-  background-color: #dddddd; /* Light grey for hover effect on inactive tabs */
-}
-
-.tab-button:focus {
-  outline: none; /* Remove focus outline for cleaner look */
-}
-
 html {
   user-select: none;
 }
 
-.battle-again-container {
-  position: fixed;
-  top: 50%; /* Center vertically */
-  right: 20px; /* Distance from the right */
-  transform: translateY(-50%); /* Adjust for vertical centering */
-  z-index: 1000; /* Ensure it stays on top of other elements */
-}
-
-.battle-again-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease;
-}
-
-.battle-again-button:hover {
-  background-color: #0056b3;
-}
-
-/* General Styles */
 body {
   font-family: Arial, sans-serif;
   background-color: #f5f5f5;
@@ -352,6 +56,7 @@ button:disabled {
   gap: 20px;
 }
 
+.character-item,
 .character-item-start {
   display: flex;
   flex-direction: column;
@@ -364,6 +69,7 @@ button:disabled {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.character-item > img,
 .character-item-start > img {
   width: 100px;
   height: 100px;
@@ -371,38 +77,13 @@ button:disabled {
   border-radius: 50%;
 }
 
+.character-item h2,
 .character-item-start h2 {
   margin: 10px 0 5px;
 }
 
+.character-item p,
 .character-item-start p {
-  margin: 5px 0;
-}
-
-.character-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  background-color: #e9ecef;
-  border-radius: 8px;
-  padding: 10px;
-  width: 200px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.character-item > img {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 50%;
-}
-
-.character-item h2 {
-  margin: 10px 0 5px;
-}
-
-.character-item p {
   margin: 5px 0;
 }
 
@@ -432,6 +113,15 @@ button:disabled {
   padding: 10px;
 }
 
+/* User Stats Display */
+.user-stats-toggle {
+  position: absolute;
+  right: 5px;
+  color: black;
+  border: none;
+  cursor: pointer;
+}
+
 .user-stats-display {
   position: fixed;
   top: 10px;
@@ -448,6 +138,89 @@ button:disabled {
   margin-top: 10px;
 }
 
+/* User Stats Display */
+.user-settings-display {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  color: black;
+  border-radius: 5px;
+  text-align: center;
+  z-index: 1000;
+}
+
+.user-settings-display .fa-cog {
+  font-size: 30px;
+  cursor: pointer;
+  color: black;
+  transition: color 0.3s ease;
+}
+
+.user-settings-display .fa-cog:hover {
+  color: #007bff;
+}
+
+.user-settings-display .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.user-settings-display .modal {
+  display: flex;
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  width: 300px;
+  flex-direction: column;
+}
+
+.user-settings-display .modal input {
+  width: 90%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.user-settings-display .modal button {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.user-settings-display .modal button:last-child {
+  background-color: #ccc;
+  color: black;
+}
+
+/* Success and error messages */
+.user-settings-display .modal p {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.user-settings-display .modal p.success {
+  color: green;
+}
+
+.user-settings-display .modal p.error {
+  color: red;
+}
+
+/* Status Effects */
 .status-effects {
   display: flex;
   gap: 4px;
@@ -485,6 +258,7 @@ button:disabled {
   border-radius: 2px;
 }
 
+/* Health Bar */
 .health-bar-container {
   position: relative;
   overflow: hidden;
@@ -494,6 +268,7 @@ button:disabled {
   transition: width 0.1s ease-in-out;
 }
 
+/* Modal Styles */
 .modal {
   position: fixed;
   top: 50%;
@@ -506,14 +281,22 @@ button:disabled {
   z-index: 1000;
   max-width: 400px;
   width: 100%;
+  max-height: 80vh; /* Ensure it doesn't exceed 80% of the viewport height */
+  overflow-y: auto; /* Allow scroll if the content overflows */
 }
 
 .modal-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-height: 80vh;
+  max-height: 80vh; /* Maintain scrollable content within modal */
   overflow-y: auto;
+}
+
+#close-button {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
 }
 
 .enemy-details {
@@ -565,6 +348,88 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Scoped Modal Overlay */
+.sign-in-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Scoped Modal Container */
+.sign-in-modal {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Scoped Heading Style */
+.sign-in-modal h3 {
+  font-size: 1.5rem;
+  color: #333;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+/* Scoped Input Styles */
+.sign-in-modal input {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.sign-in-modal input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* Scoped Button Styles */
+.sign-in-modal button {
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.sign-in-modal button:hover {
+  background-color: #0056b3;
+}
+
+.sign-in-modal button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Scoped Close Button Styling */
+.sign-in-modal button:last-child {
+  background-color: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.sign-in-modal button:last-child:hover {
+  background-color: #e0e0e0;
+}
+
+/* Tab Button Styles */
 .tabs {
   display: flex;
   justify-content: space-around;
@@ -581,7 +446,7 @@ button:disabled {
   transition: all 0.2s ease;
 }
 
-.tab-button.active {
+.modal .tab-button.active {
   background-color: #4CAF50;
   border-color: #388E3C;
   color: white;
@@ -599,10 +464,7 @@ button:disabled {
   outline: none;
 }
 
-html {
-  user-select: none;
-}
-
+/* Battle Again Button */
 .battle-again-container {
   position: fixed;
   top: 50%;
@@ -627,6 +489,7 @@ html {
   background-color: #0056b3;
 }
 
+/* Expand Button */
 .expand-button {
   display: none; /* Hidden by default */
   margin-top: 10px;
@@ -644,43 +507,21 @@ html {
   background-color: #0056b3;
 }
 
-/* Modify tooltips for mobile*/
-@media (pointer: coarse), (hover: none) {
-  [title] {
-    position: relative;
-    display: inline-flex;
-    justify-content: center;
-  }
-  [title]:focus::after {
-    content: attr(title);
-    position: absolute;
-    top: 90%;
-    color: #000;
-    background-color: #fff;
-    border: 1px solid;
-    width: fit-content;
-    padding: 3px;
-    font-size: 10px;
-  }
-
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
-  
-  .app-container{
+  .app-container {
     height: 100vh;
     display: flex;
     flex-direction: column;
   }
 
-  .user-stats-display{
+  .user-stats-display {
     max-width: 30%;
     max-height: 30%;
     font-size: clamp(10px, 1vw, 14px);
   }
 
-  .user-stats-display button{
+  .user-stats-display button {
     padding: 5%;
     margin: 0;
     margin-bottom: 5%;
@@ -689,18 +530,23 @@ html {
     font-size: inherit;
   }
 
+  .user-settings-display i {
+    font-size: clamp(25px, 1vw, 25px);
+  }
+
   .character-item {
     width: 100px;
     font-size: clamp(10px, 1vw, 14px);
   }
-  
+
   .character-item h2,
   .character-item p {
     font-size: inherit;
     margin: 0;
   }
 
-  .enemy-image, .character-item > img {
+  .enemy-image,
+  .character-item > img {
     width: 80px;
     height: 80px;
   }
@@ -717,10 +563,6 @@ html {
     display: flex;
     flex-direction: column;
   }
-  
-  #shop-modal{
-    top:68%;
-  }
 
   .modal-content {
     flex-grow: 1;
@@ -728,17 +570,25 @@ html {
     max-height: 100%;
   }
 
+  .sign-in-modal {
+    max-width: 80%;
+  }
+
+  .sign-in-modal button {
+    font-size: 15px;
+    padding: 6px 0px;
+  }
+
   .battle-again-container {
     position: absolute;
-    top: 0;  /* Positions it at the very top */
-    left: 50%;  /* Move it horizontally to the center */
-    transform: translateX(-50%);  /* Adjust for true center alignment */
-    right: auto;  /* Remove right positioning */
-    bottom: auto;  /* Remove bottom positioning */
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
   }
 
   .battle-again-button {
-    padding: 8px 16px; /* Slightly smaller button */
+    padding: 8px 16px;
     font-size: clamp(10px, 1vw, 14px);
   }
 
@@ -746,15 +596,36 @@ html {
     max-height: 0;
     overflow: hidden;
     visibility: hidden;
-    transition: max-height 0.3s ease, visibility 0.3s ease; /* Smooth transition */
+    transition: max-height 0.3s ease, visibility 0.3s ease;
   }
-  
+
   .character-passives.expanded {
     max-height: 500px;
     visibility: visible;
   }
 
   .expand-button {
-    display: inline-block; /* Show the expand button for smaller screens */
+    display: inline-block;
+  }
+}
+
+/* Modify tooltips for mobile */
+@media (pointer: coarse), (hover: none) {
+  [title] {
+    position: relative;
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  [title]:focus::after {
+    content: attr(title);
+    position: absolute;
+    top: 90%;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid;
+    width: fit-content;
+    padding: 3px;
+    font-size: 10px;
   }
 }
