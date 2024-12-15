@@ -102,18 +102,22 @@ const AccountSettings = ({ user, setUser }) => {
             {currentView === "main" && (
               <>
                 <h3>Account Settings</h3>
-                <button
-                  onClick={() => setCurrentView("displayName")}
-                  style={{ display: "block", marginBottom: "10px" }}
-                >
-                  Change Display Name
-                </button>
-                <button
-                  onClick={() => setCurrentView("password")}
-                  style={{ display: "block", marginBottom: "10px" }}
-                >
-                  Change Password
-                </button>
+                {!user.isAnonymous && (
+                  <>
+                    <button
+                      onClick={() => setCurrentView("displayName")}
+                      style={{ display: "block", marginBottom: "10px" }}
+                    >
+                      Change Display Name
+                    </button>
+                    <button
+                      onClick={() => setCurrentView("password")}
+                      style={{ display: "block", marginBottom: "10px" }}
+                    >
+                      Change Password
+                    </button>
+                  </>
+                )}
                 <button onClick={handleLogOut}>Log Out</button>
                 <button onClick={() => setIsModalOpen(false)}>Close</button>
               </>

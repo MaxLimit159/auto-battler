@@ -27,6 +27,8 @@ const Authentication = ({ user, setUser }) => {
       const userCredential = await signInAnonymously(auth);
       setUser(userCredential.user);
       console.log("Signed in as anonymous user:", userCredential.user);
+      setIsModalOpen(false); // Close modal after successful sign-up
+      setErrorMessage(""); // Clear error message on successful sign-up
     } catch (error) {
       setErrorMessage("Error during anonymous sign-in: " + error.message);
     } finally {

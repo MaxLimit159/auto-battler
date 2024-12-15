@@ -72,19 +72,27 @@ function App() {
   useEffect(() => {
     // Save the original console.log function
     const originalConsoleLog = console.log;
-
+  
+    // List of messages to ignore
+    const ignoredMessages = ["Game saved successfully!"];
+  
     // Override console.log
     console.log = (...args) => {
-      // Create the log message
-      const logMessage = args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
-
-      // Add the new log to the state
-      setLogs((prevLogs) => [...prevLogs, logMessage]);
-
+      // Convert arguments to a single log message
+      const logMessage = args
+        .map((arg) => (typeof arg === "object" ? JSON.stringify(arg) : arg))
+        .join(" ");
+  
+      // Check if the log message is in the ignored messages list
+      if (!ignoredMessages.includes(logMessage)) {
+        // Add the new log to the state
+        setLogs((prevLogs) => [...prevLogs, logMessage]);
+      }
+  
       // Call the original console.log so it still logs to the console
       originalConsoleLog(...args);
     };
-
+  
     // Cleanup: Restore the original console.log on component unmount
     return () => {
       console.log = originalConsoleLog;
