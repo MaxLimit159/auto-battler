@@ -12,4 +12,5 @@ export const passiveDescriptions = [
     { name: 'Archmage Codex', description: 'Gains Archmage Codex which cycles between modes and replaces basic attack.\n<u>Arcane Assault</u>: Attacks 3 times\n<u>Mystic Aegis</u>: Gives self 50% of max hp as shield\n<u>Venom Verse</u>: Inflicts 3 poisons on the enemy' },
     { name: 'Undead Rage', description: 'At/below 30% of max health after attacked, gains 50% of max health as Shield and Damage Up for 3 turns. Once per battle.' },
     { name: 'Weakening Poison', description: 'Poison effect on the opponent decreases their damage by 25%' },
+    { name: 'Eternal Suffering', description: 'Gains Necrotic everytime this unit is revived.\nNecrotic: Each stack increases damage by 5% of enemy max health. Will not dissapear when reviving.' },
   ];

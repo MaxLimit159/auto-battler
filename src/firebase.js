@@ -23,6 +23,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // Initialize Firestore
-const db = getFirestore(app);
+const firestore = getFirestore(app);
 
-export { auth, db, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential };
+export { auth, firestore, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential };

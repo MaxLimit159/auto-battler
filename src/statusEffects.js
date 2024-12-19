@@ -145,5 +145,19 @@ export const statusEffects = {
           resolve(deathCheck);
         })
       }
-    }
+    },
+    necrotic: { 
+      name: "Necrotic", 
+      image: "/StatusEffectImage/necrotic.png",
+      description: "Each stack increases damage by 5% of enemy max health.", 
+      type: "Golden",
+      duration: null,
+      canHaveDuplicate: false,
+      stackCount: 1,
+      effect: function (setEntity, setEntityHealthColor, identicalStackCount, totalDamage, deathCheck) {
+        return new Promise((resolve) => {
+          resolve(deathCheck);
+        })
+      }
+    },
   };
