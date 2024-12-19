@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { statusEffects } from './statusEffects.js';
 import { animations } from './animations'
 import { activeSkills } from './activeSkills.js';
+import { characterList } from './charactersFiles/characters.js';
+const baseCharacterList = JSON.parse(JSON.stringify(characterList));
 const TURN_LENGTH = 1000;
 const animationVarriants = animations;
 // Function to flash health color
@@ -22,49 +24,86 @@ const getLevelUppedStats = (character) => {
 
   return character;
 };
+const createCharacter = (name, level = 1, experience = 0, enemy_type) => {
+  // Clone the base character from the baseCharacterList
+  const baseCharacter = {...baseCharacterList[name]};
+
+  if (!baseCharacter) {
+    throw new Error(`Character ${name} not found in characterList`);
+  }
+
+  // Set initial level
+  const character = { ...baseCharacter, level, experience, ...(enemy_type !== undefined && { enemy_type })};
+  //Return the character with the proper stats based on the given level
+  return getLevelUppedStats(character);
+};
 //Handles game ending logics
-const handleGameEnd = (winningSide, updateMoney, updateCharacterLevel, moneyDrop, experienceDrop, winnerChar, loserChar, setPlayer, endGame, gameEnded, player_ownedPassives, updatePlayerOwnedPassives) => {
-  gameEnded.current = true; // Set game ended state
+const handleGameEnd = (winningSide, updateMoney, updateCharacterLevel, moneyDrop, experienceDrop, winnerChar, loserChar, setPlayer, endGame, gameEnded, player_ownedPassives, updatePlayerOwnedPassives, setEnemy) => {
   // console.log(winningSide);
   if (winningSide === 'Player' && moneyDrop !== undefined) {
-    if(moneyDrop !== undefined){
-      console.log(winnerChar.name + " gained " + moneyDrop + " money!");
-      updateMoney(moneyDrop);
-    }
-    if(experienceDrop !== undefined){
-      console.log(winnerChar.name + " gained " + experienceDrop + " experience!");
-      let totalExp = winnerChar.experience + experienceDrop;
-      let totalLevel = winnerChar.level;
-      let levelUppedCharacter = winnerChar;
-      while(totalExp >= calculateExperienceForNextLevel(winnerChar.level)){
-        totalExp -= calculateExperienceForNextLevel(winnerChar.level);
-        totalLevel += 1;
-        levelUppedCharacter = getLevelUppedStats(winnerChar);
-        console.log(winnerChar.name + " leveled up!");
-      }
-      setPlayer(prevPlayer => ({
-        ...prevPlayer, experience: totalExp, level: totalLevel, health: levelUppedCharacter.health, maxHealth: levelUppedCharacter.maxHealth, speed: levelUppedCharacter.speed, damage: levelUppedCharacter.damage
-      }));
-      updateCharacterLevel(winnerChar.id, totalLevel, totalExp);
-    }
-    if (loserChar.lootTable) {
-      loserChar.lootTable.forEach((loot) => {
-        if (player_ownedPassives[loot.passiveId] && player_ownedPassives[loot.passiveId].isObtained) {
-          return; // Skip this loot since the player already owns it
-        }
+    if(loserChar.enemy_type === 'Raid Boss'){
+      const newLevel = loserChar.level + 5;
+      const goldenBuffs = loserChar.status_effects.filter(effect => effect.type === 'Golden');
+      
+      const refreshedBoss = createCharacter(loserChar.id, newLevel, 0, 'Raid Boss');
 
-        const roll = Math.random(); // Generate a random number between 0 and 1
-        const chancePercentage = loot.chance / 100; // Convert the chance to a decimal (e.g., 10% -> 0.1)
+      goldenBuffs.forEach(buff => {
+        const existingBuff = refreshedBoss.status_effects.find(effect => effect.name === buff.name);
     
-        if (roll <= chancePercentage) {
-          console.log(`Player obtained: ${loot.name} (${loot.chance}%)!`);
-          updatePlayerOwnedPassives(loot.passiveId, undefined, undefined, true); // Mark the passive as obtained
+        if (!existingBuff) {
+          refreshedBoss.status_effects.push({ ...buff });
         }
       });
+
+      setEnemy(refreshedBoss);
+      inflictStatusEffects(setEnemy, "necrotic");
+
+      console.log(`Raid Boss leveled up to ${newLevel}. Stats refreshed!`);
+    } else {
+      if(moneyDrop !== undefined){
+        console.log(winnerChar.name + " gained " + moneyDrop + " money!");
+        updateMoney(moneyDrop);
+      }
+      if(experienceDrop !== undefined){
+        console.log(winnerChar.name + " gained " + experienceDrop + " experience!");
+        let totalExp = winnerChar.experience + experienceDrop;
+        let totalLevel = winnerChar.level;
+        let levelUppedCharacter = winnerChar;
+        while(totalExp >= calculateExperienceForNextLevel(winnerChar.level)){
+          totalExp -= calculateExperienceForNextLevel(winnerChar.level);
+          totalLevel += 1;
+          levelUppedCharacter = getLevelUppedStats(winnerChar);
+          console.log(winnerChar.name + " leveled up!");
+        }
+        setPlayer(prevPlayer => ({
+          ...prevPlayer, experience: totalExp, level: totalLevel, health: levelUppedCharacter.health, maxHealth: levelUppedCharacter.maxHealth, speed: levelUppedCharacter.speed, damage: levelUppedCharacter.damage
+        }));
+        updateCharacterLevel(winnerChar.id, totalLevel, totalExp);
+      }
+      if (loserChar.lootTable) {
+        loserChar.lootTable.forEach((loot) => {
+          if (player_ownedPassives[loot.passiveId] && player_ownedPassives[loot.passiveId].isObtained) {
+            return; // Skip this loot since the player already owns it
+          }
+
+          const roll = Math.random(); // Generate a random number between 0 and 1
+          const chancePercentage = loot.chance / 100; // Convert the chance to a decimal (e.g., 10% -> 0.1)
+      
+          if (roll <= chancePercentage) {
+            console.log(`Player obtained: ${loot.name} (${loot.chance}%)!`);
+            updatePlayerOwnedPassives(loot.passiveId, undefined, undefined, true); // Mark the passive as obtained
+          }
+        });
+      }
     }
+  } else if (winningSide === "Enemy" && winnerChar.enemy_type === 'Raid Boss') {
+
   }
-  endGame(winningSide);
-  console.log(`Game ends. ${winningSide} wins`);
+  if(loserChar.enemy_type !== 'Raid Boss'){
+    gameEnded.current = true; // Set game ended state
+    endGame(winningSide);
+    console.log(`Game ends. ${winningSide} wins`);
+  }
 };
 
 // Function to handle status effects
@@ -221,6 +260,10 @@ const calculateDamage = (attacker, defender, damage, attackerPassives, defenderP
   if (damageUpBuff) {
     damage *= 1.2;
   }
+  const necroticEffect = attacker.status_effects.find(effect => effect.name === "Necrotic");
+  if (necroticEffect) {
+    damage += 0.05 * necroticEffect.stackCount * defender.maxHealth;
+  }
 
   return damage;
 };
@@ -274,20 +317,29 @@ const doDamage = async (
 
     // Check if the defender is defeated
     if (updatedHealth <= 0) {
-      handleGameEnd(
-        defenderSide === "Player" ? "Enemy" : "Player",
-        updateMoney,
-        updateCharacterLevel,
-        defenderSide === "Enemy" ? prevDefender.money_drop : undefined,
-        defenderSide === "Enemy" ? prevDefender.experience_drop : undefined,
-        attacker,
-        defender,
-        defenderSide === "Enemy" ? setAttacker : undefined,
-        endGame,
-        gameEnded,
-        player_ownedPassives,
-        updatePlayerOwnedPassives,
-      );
+      setDefender((prevDefender) => ({
+        ...prevDefender,
+        health: 0,
+        shield: Math.max(updatedShield, 0),
+      }));
+    
+      setTimeout(() => {
+        handleGameEnd(
+          defenderSide === "Player" ? "Enemy" : "Player",
+          updateMoney,
+          updateCharacterLevel,
+          defenderSide === "Enemy" ? prevDefender.money_drop : undefined,
+          defenderSide === "Enemy" ? prevDefender.experience_drop : undefined,
+          attacker,
+          defender,
+          defenderSide === "Enemy" ? setAttacker : undefined,
+          endGame,
+          gameEnded,
+          player_ownedPassives,
+          updatePlayerOwnedPassives,
+          defenderSide === "Enemy" ? setDefender : undefined,
+        );
+      }, 0);
     } else {
       // If the attack didn't defeat the defender, check for "Undead Rage" trigger
       if (updatedHealth <= maxHealth * 0.3 && defenderPassives.includes("Undead Rage")) {
@@ -317,7 +369,7 @@ const doDamage = async (
     // Update the defender's state
     return {
       ...prevDefender,
-      health: Math.max(updatedHealth, 0), // Ensure health doesn't go below zero
+      health: updatedHealth,
       shield: Math.max(updatedShield, 0), // Ensure shield doesn't go below zero
     };
   });
@@ -353,7 +405,7 @@ const doDamage = async (
       console.log(
         `${prevAttacker.name} took ${retaliateDamage} damage from retaliation.`
       );
-      return { ...prevAttacker, health: Math.max(newHealth, 0) };
+      return { ...prevAttacker, health: newHealth };
     });
   
     // Check if the attacker is defeated from retaliate damage
@@ -373,6 +425,7 @@ const doDamage = async (
             gameEnded,
             player_ownedPassives,
             updatePlayerOwnedPassives,
+            defenderSide === "Player" ? setAttacker : undefined,
           );
         }
         return prevAttacker;
@@ -526,6 +579,7 @@ function Attack({
   player_ownedPassives,
   updatePlayerOwnedPassives,
   logs,
+  setRaidTotalScore,
 }) {
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [cooldowns, setCooldowns] = useState(
@@ -534,6 +588,21 @@ function Attack({
       return acc;
     }, {})
   );
+
+  //Code block for score tracking during Raid Boss
+  const previousHealthRef = useRef(enemy.health);
+  useEffect(() => {
+    // Check if enemy's health decreased
+    if (enemy && enemy.health !== undefined && enemy.enemy_type === 'Raid Boss') {
+      const previousHealth = previousHealthRef.current;
+
+      if (enemy.health < previousHealth) {
+        const damageTaken = previousHealth - enemy.health;
+        setRaidTotalScore(prevScore => Math.floor(prevScore + damageTaken));
+      }
+      previousHealthRef.current = enemy.health;
+    }
+  }, [enemy, setRaidTotalScore]);
 
   //Calculate aniamtion distance based on viewport size
   useEffect(() => {
@@ -614,7 +683,7 @@ function Attack({
               actionAttack();
           } else{
             //Entity died from status effect, ending the game (attacker is the one dying)
-            handleGameEnd(nextTurn, updateMoney, updateCharacterLevel, isPlayerTurn ? undefined : enemy.money_drop, isPlayerTurn ? undefined : enemy.experience_drop, defender, attacker, setPlayer, endGame, gameEnded, player_ownedPassives, updatePlayerOwnedPassives);
+            handleGameEnd(nextTurn, updateMoney, updateCharacterLevel, isPlayerTurn ? undefined : enemy.money_drop, isPlayerTurn ? undefined : enemy.experience_drop, defender, attacker, setPlayer, endGame, gameEnded, player_ownedPassives, updatePlayerOwnedPassives, setEnemy);
           }
         })
       }else{

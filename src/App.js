@@ -17,6 +17,7 @@ import AccountSettings from './AccountSettings';
 const initialStageData = [
   {
     stageName: 'Graveyard',
+    stageId: 'graveyardStage',
     enemies: [
       { name: 'zombie', level: 1 },
       { name: 'ghost', level: 1 },
@@ -25,14 +26,25 @@ const initialStageData = [
   },
   {
     stageName: 'Challenge the King!',
+    stageId: 'mimicKingChallengeStage',
     enemies: [
       { name: 'mimicKing', level: 1 },
     ],
   },
   {
     stageName: 'Challenge the Archmage!',
+    stageId: 'archmageChallengeStage',
     enemies: [
       { name: 'archmage', level: 1 },
+    ],
+  },
+]
+const initialRaidData = [
+  {
+    stageName: 'The Lich',
+    stageId: 'theLichRaid',
+    enemies: [
+      { name: 'theLich', level: 5 },
     ],
   },
 ]
@@ -65,8 +77,9 @@ function App() {
   const [isShopOpen, setIsShopOpen] = useState(false);
   //Manage stage data
   const [stageData, setStageData] = useState(initialStageData);
+  const [raidTotalScore, setRaidTotalScore] = useState(0);
   //Manage and load player data
-  const { money, player_characters, player_activeSkills, player_ownedPassives, selectedPassives, selectedSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, saveGame, setSelectedPassives, setSelectedSkills } = SaveManager();
+  const { money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores, selectedPassives, selectedSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, updateRaidScore, saveGame, setSelectedPassives, setSelectedSkills } = SaveManager();
 
   const [logs, setLogs] = useState([]); // State to store logs
   useEffect(() => {
@@ -172,7 +185,7 @@ function App() {
     }
     return character;
   };
-  const createCharacter = (name, level = 1, experience = 0) => {
+  const createCharacter = (name, level = 1, experience = 0, enemy_type) => {
     // Clone the base character from the baseCharacterList
     const baseCharacter = {...baseCharacterList[name]};
   
@@ -181,21 +194,20 @@ function App() {
     }
 
     // Set initial level
-    const character = { ...baseCharacter, level, experience };
+    const character = { ...baseCharacter, level, experience, ...(enemy_type !== undefined && { enemy_type })};
     //Return the character with the proper stats based on the given level
     return getLevelUppedStats(character);
   };
 
   //Varriables to pass over to Attack.js
   const gameEnded = useRef(false);
-  const [selectedStage, setSelectedStage] = useState(null);
+  const [selectedStageDetail, setSelectedStageDetail] = useState(null);
   const animationVarriants = useMemo(() => animations, []);//Note to self: animation is memorized with no dependencies so dont try to change it with codes
   const [enemyQueue, setEnemyQueue] = useState(null);
   const [currentEnemyIndex, setCurrentEnemyIndex] = useState(0);
   const [currentPlayerId, setCurrentPlayerId] = useState();
 
-  // const [selectedSkills, setSelectedSkills] = useState([]);
-  // const [selectedPassives, setSelectedPassives] = useState([]);
+  const [selectedRaid, setSelectedRaid] = useState(null);
 
   //Timer for next battle states
   const [countdown, setCountdown] = useState(5);  // Timer starting at 5 seconds
@@ -212,9 +224,16 @@ function App() {
     setMode('StageSelection');
   };
 
-  const selectStage = (stageId) => {
-    const selectedStage = stageData[stageId];
-    const newEnemyQueue = selectedStage.enemies.map(({ name, level }) => createCharacter(name, level));
+  const selectStage = (stageId, enemy_type) => {
+    const selectStage = stageData[stageId];
+    const newEnemyQueue = selectStage.enemies.map(({ name, level }) => createCharacter(name, level, undefined, enemy_type));
+    setEnemyQueue(newEnemyQueue);
+  }
+
+  const selectRaid = (raidId, enemy_type) => {
+    const raid = initialRaidData[raidId];
+    setSelectedRaid(raid);
+    const newEnemyQueue = raid.enemies.map(({ name, level }) => createCharacter(name, level, undefined, enemy_type));
     setEnemyQueue(newEnemyQueue);
   }
 
@@ -291,6 +310,10 @@ function App() {
         }, 1000);
       } else {
         // End battle sequence
+        if(raidTotalScore > 0) {
+          const { id, level } = player;
+          updateRaidScore(selectedRaid.stageId, selectedRaid.stageName, raidTotalScore, { id, level });
+        }
         setMode('EndBattle');
         setWinner(winner);
       }
@@ -311,6 +334,8 @@ function App() {
     setCurrentEnemyIndex(0);
     setCurrentPlayerId(null);
     gameEnded.current = false;
+    setRaidTotalScore(0);
+    setSelectedStageDetail(null);
   };
   useEffect(() => {
     if (turn === 'Player') {
@@ -497,7 +522,7 @@ const getEnemyDetails = (enemyName, level) => {
 };
 
 const enemyDetailsClose = () => {
-  setSelectedStage(null);
+  setSelectedStageDetail(null);
 };
 
 const togglePassivesExpand = (side) => {
@@ -523,7 +548,7 @@ const handleRootClick = (event) => {
   // Check if the clicked element is not inside a modal
   if (!event.target.closest('.modal') && !event.target.closest('.modal-open-button') && !event.target.closest('.user-stats-display')) {
     // Reset states
-    setSelectedStage(null);
+    setSelectedStageDetail(null);
     setIsShopOpen(false);
   }
 };
@@ -531,10 +556,10 @@ const handleRootClick = (event) => {
 const [user, setUser] = useState(null); // Track the current user
 useEffect(() => {
   if (user) {
-    saveGame(money, player_characters, player_activeSkills, player_ownedPassives);
+    saveGame(money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [money, player_characters, player_activeSkills, player_ownedPassives]);
+}, [money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores]);
 
   return (
   <div className="app-container" onClick={handleRootClick}>
@@ -928,7 +953,7 @@ useEffect(() => {
                 </button>
                 <button
                   className='modal-open-button'
-                  onClick={() => setSelectedStage(stage)}
+                  onClick={() => setSelectedStageDetail(stage)}
                   style={{
                     cursor: 'pointer',
                     backgroundColor: 'blue',
@@ -942,6 +967,9 @@ useEffect(() => {
                 </button>
               </div>
             ))}
+            <button onClick={() => {setMode("RaidSelection"); setBattleAgain(false)}}>
+              Raid Boss
+            </button>
           </div>
           <button
             onClick={() => setMode("Start")}
@@ -962,12 +990,101 @@ useEffect(() => {
               {battleAgain ? 'Auto Battle: Enabled' : 'Auto Battle: Disabled'}
             </button>
           </div>
-          {selectedStage && (
+          {selectedStageDetail && (
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-content">
-                <h2>{selectedStage.stageName} - Enemy Details</h2>
+                <h2>{selectedStageDetail.stageName} - Enemy Details</h2>
                 <div className="enemy-list">
-                {Array.from(new Set(selectedStage.enemies.map((enemy) =>
+                {Array.from(new Set(selectedStageDetail.enemies.map((enemy) =>
+                    getEnemyDetails(enemy.name, enemy.level)
+                  )))}
+                </div>
+                <button
+                  onClick={enemyDetailsClose}
+                  style={{
+                    backgroundColor: 'red',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {mode === "RaidSelection" && (
+        <>
+          <h1>Select a Raid</h1>
+          <p>Raid bosses can't be killed. Instead, they will revive with 5 extra levels.</p>
+          <p>Try and go for a new highscore!</p>
+          <div className="stage-list">
+            {initialRaidData.map((stage, index) => (
+              <div key={index} className="stage-item" style={{ marginBottom: '20px' }}>
+                <h2>{stage.stageName}</h2>
+                <p>
+                  Enemies: {stage.enemies.map((enemy) => characterList[enemy.name].name).join(', ')}
+                </p>
+                <p>
+                  Personal best: {player_personalHighScores[`player_${stage.stageId}`] ? player_personalHighScores[`player_${stage.stageId}`].score : 0}
+                </p>
+                <button
+                  onClick={() => selectRaid(index, 'Raid Boss')}
+                  style={{
+                    cursor: 'pointer',
+                    backgroundColor: 'green',
+                    color: 'white',
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '5px',
+                  }}
+                >
+                  Select Stage
+                </button>
+                <button
+                  className='modal-open-button'
+                  onClick={() => setSelectedStageDetail(stage)}
+                  style={{
+                    cursor: 'pointer',
+                    backgroundColor: 'blue',
+                    color: 'white',
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '5px',
+                  }}
+                >
+                  View Enemies
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setMode("StageSelection")}>
+              Stage Select
+            </button>
+          </div>
+          <button
+            onClick={() => setMode("Start")}
+            style={{
+              marginTop: '20px',
+              padding: '10px',
+              backgroundColor: 'red',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+            }}
+          >
+            Back
+          </button>
+          {selectedStageDetail && (
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content">
+                <h2>{selectedStageDetail.stageName} - Enemy Details</h2>
+                <div className="enemy-list">
+                {Array.from(new Set(selectedStageDetail.enemies.map((enemy) =>
                     getEnemyDetails(enemy.name, enemy.level)
                   )))}
                 </div>
@@ -993,6 +1110,13 @@ useEffect(() => {
         <>
           <h1>Battle Menu</h1>
           <div className="battle-menu">
+            {/* Score UI for Raid Boss */}
+            {enemy.enemy_type === 'Raid Boss' && (
+              <div className="score-ui">
+                <h3>Total Damage Taken by Raid Boss:</h3>
+                <p>{raidTotalScore}</p>
+              </div>
+            )}
             <div className="battle-space">
               {/* Player Character Info */}
               <motion.div
@@ -1011,7 +1135,7 @@ useEffect(() => {
                 />
                 <p>Damage: {player.damage}</p>
                 <p>SPD: {player.speed}</p>
-                <div class="character-passives-container-player">
+                <div className="character-passives-container-player">
                   <div className={`character-passives`}>
                   <p>Passives:</p>
                     {player.passives.length > 0 ? (
@@ -1033,7 +1157,7 @@ useEffect(() => {
                 <div className="status-effects">
                   {player.status_effects && player.status_effects.length > 0 ? (
                     player.status_effects.map((effect, index) => (
-                      <div key={index} className="status-effect-item">
+                      <div key={index} className={`status-effect-item ${effect.type === "Golden" ? "golden-effect" : ""}`}>
                         <div className="status-effect-wrapper">
                           <img
                             src={effect.image || '/StatusEffectImage/default.png'}
@@ -1073,7 +1197,7 @@ useEffect(() => {
                 />
                 <p>Damage: {enemy.damage}</p>
                 <p>SPD: {enemy.speed}</p>
-                <div class="character-passives-container-enemy">
+                <div className="character-passives-container-enemy">
                   <div className={`character-passives`}>
                   <p>Passives:</p>
                     {enemy.passives.length > 0 ? (
@@ -1095,7 +1219,7 @@ useEffect(() => {
                 <div className="status-effects">
                   {enemy.status_effects && enemy.status_effects.length > 0 ? (
                     enemy.status_effects.map((effect, index) => (
-                      <div key={index} className="status-effect-item">
+                      <div key={index} className={`status-effect-item ${effect.type === "Golden" ? "golden-effect" : ""}`}>
                         <div className="status-effect-wrapper">
                           <img
                             src={effect.image || '/StatusEffectImage/default.png'}
@@ -1129,6 +1253,7 @@ useEffect(() => {
                 </button>
               </div>
             )}
+
             {/* Attack component that handles the combat logics */}
             <Attack
               updateMoney={updateMoney}
@@ -1152,6 +1277,7 @@ useEffect(() => {
               player_ownedPassives={player_ownedPassives}
               updatePlayerOwnedPassives={updatePlayerOwnedPassives}
               logs={logs}
+              setRaidTotalScore={setRaidTotalScore}
             />
           </div>
         </>
@@ -1160,6 +1286,9 @@ useEffect(() => {
       {mode === "EndBattle" && (
         <div className="end-battle">
           <h1>{winner} wins!</h1>
+          {raidTotalScore > 0 ? (<>
+            <h2>Final score: {raidTotalScore}</h2>
+          </>):(<></>)}
           {winner === "Player" && (
             <>
               {currentEnemyIndex < enemyQueue.length ? (

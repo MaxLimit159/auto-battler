@@ -247,6 +247,11 @@ button:disabled {
   border: 1px solid #ccc;
 }
 
+.golden-effect {
+  border: 2px solid gold;
+  background-color: #f0e68c;
+}
+
 .status-effect-duration {
   position: absolute;
   bottom: 0;
