@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { firestore, auth } from "./firebase"; // Import the Firebase config
-import { doc, setDoc, getDoc, collection, updateDoc, getDocs } from "firebase/firestore";
+import { doc, collection, setDoc, getDocs, updateDoc, query, orderBy, deleteDoc, getDoc } from "firebase/firestore";
 
 const defaultSaveData = {
   money: 0,
@@ -40,54 +40,62 @@ const SaveManager = () => {
   const [selectedPassives, setSelectedPassives] = useState([]);
   const [user, setUser] = useState(null);
 
-// eslint-disable-next-line no-unused-vars
-  const updateAllDocuments = async () => {
-    const collectionRef = collection(firestore, "gameSaves");
-  
-    try {
-      const snapshot = await getDocs(collectionRef);
-  
-      snapshot.forEach(async (docSnap) => {
-        const docRef = doc(firestore, "gameSaves", docSnap.id);
-        const existingData = docSnap.data();
-  
-        // Merge existing data with defaults, filling in any missing fields
-        const updatedData = mergeWithDefaults(defaultSaveData, existingData);
+const mergeWithDefaults = (defaults, existing) => {
+  // If existing data is completely missing, return defaults
+  if (!existing) return defaults;
 
-        await updateDoc(docRef, updatedData);
-        console.log(`Document ${docSnap.id} updated successfully!`);
-      });
-    } catch (error) {
-      console.error("Error updating documents:", error);
+  const merged = { ...defaults };
+
+  Object.keys(merged).forEach((key) => {
+    if (typeof merged[key] === "object" && !Array.isArray(merged[key])) {
+      // Recur for nested objects
+      merged[key] = mergeWithDefaults(defaults[key], existing[key] || {});
+    } else if (existing[key] !== undefined) {
+      // Use the existing value if it exists
+      merged[key] = existing[key];
     }
-  };
-  
-  // Helper function to recursively merge default data with existing data
-  const mergeWithDefaults = (defaults, existing) => {
-    const merged = { ...defaults };
-  
-    Object.keys(existing).forEach((key) => {
-      if (typeof existing[key] === "object" && !Array.isArray(existing[key])) {
-        merged[key] = mergeWithDefaults(defaults[key] || {}, existing[key]);
-      } else {
-        merged[key] = existing[key];
-      }
-    });
-  
-    return merged;
-  };
-  
-  // Call the function to update all documents
-  // useEffect(() => {
-  //   // updateAllDocuments();
-  // }, []);
+    // Otherwise, keep the default value
+  });
+
+  return merged;
+};
+
+// Function to update all documents in the "gameSaves" collection
+// eslint-disable-next-line no-unused-vars
+const updateAllDocuments = async () => {
+  const collectionRef = collection(firestore, "gameSaves");
+
+  try {
+    const snapshot = await getDocs(collectionRef);
+
+    // Loop through each document and update it
+    for (const docSnap of snapshot.docs) {
+      const docRef = doc(firestore, "gameSaves", docSnap.id);
+      const existingData = docSnap.data();
+
+      // Merge existing data with defaults
+      const updatedData = mergeWithDefaults(defaultSaveData, existingData);
+
+      // Update the Firestore document
+      await updateDoc(docRef, updatedData);
+      console.log(`Document ${docSnap.id} updated successfully!`);
+    }
+  } catch (error) {
+    console.error("Error updating documents:", error);
+  }
+};
+
+// Call the function to update all documents on component mount
+// useEffect(() => {
+//   updateAllDocuments();
+// }, []);
   
   // Listen for authentication state changes (same logic as in Authentication.js)
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user); // Set user state when auth state changes
+      setUser(user);
     });
-    return () => unsubscribe(); // Cleanup listener on unmount
+    return () => unsubscribe();
   }, []);
 
   // Save data to localStorage
@@ -140,10 +148,15 @@ const SaveManager = () => {
 
         // Set selected skills and passives based on their 'equipped' status
         const equippedSkills = Object.keys(parsedData.player_activeSkills).filter(skillId => parsedData.player_activeSkills[skillId].equipped);
-        setSelectedSkills(equippedSkills); // Set the selected skills
+        setSelectedSkills(equippedSkills);
 
-        const equippedPassives = Object.keys(parsedData.player_ownedPassives).filter(passiveId => parsedData.player_ownedPassives[passiveId].equipped);
-        setSelectedPassives(equippedPassives); // Set the selected passives
+        const equippedPassives = Object.keys(parsedData.player_ownedPassives)
+        .filter(passiveId => parsedData.player_ownedPassives[passiveId].equipped)
+        .map(passiveId => ({
+          id: passiveId,
+          name: parsedData.player_ownedPassives[passiveId].name,
+        }));
+        setSelectedPassives(equippedPassives);
       } else {
         console.log("No save data found. Initializing default save...");
         saveGame(defaultSaveData.money, defaultSaveData.player_characters, defaultSaveData.player_activeSkills, defaultSaveData.player_ownedPassives, defaultSaveData.player_personalHighScores); // Create a new save if none exists
@@ -210,12 +223,63 @@ const SaveManager = () => {
     });
   };
 
+  const updateLeaderboard = async (raidId, playerData) => {
+    const leaderboardRef = collection(firestore, `leaderboards/${raidId}/entries`);
+    try {
+      // Fetch current leaderboard entries, sorted by score in descending order
+      const leaderboardQuery = query(leaderboardRef, orderBy("score", "desc"));
+      const snapshot = await getDocs(leaderboardQuery);
+  
+      let entries = [];
+      snapshot.forEach((doc) => {
+        entries.push({ id: doc.id, ...doc.data() });
+      });
+  
+      // Check if the player already has an entry in the leaderboard
+      const existingEntryIndex = entries.findIndex((entry) => entry.player_id === playerData.player_id);
+  
+      if (existingEntryIndex !== -1) {
+        // Update the existing player's score if the new score is higher
+        if (playerData.score > entries[existingEntryIndex].score) {
+          const existingEntryRef = doc(leaderboardRef, entries[existingEntryIndex].id);
+          await updateDoc(existingEntryRef, playerData);
+          // console.log("Player's score updated on the leaderboard!");
+        } else {
+          console.log("Player's score did not beat their existing leaderboard entry."); //Shouldn't happen cuz i've already checked for a new highscore
+        }
+      } else {
+        // Add the new score if it qualifies for the top 3
+        if (entries.length < 3 || playerData.score > entries[entries.length - 1].score) {
+          const newEntryRef = doc(leaderboardRef);
+          await setDoc(newEntryRef, playerData);
+  
+          // Sort the leaderboard after adding the new score
+          entries.push({ id: newEntryRef.id, ...playerData });
+          entries.sort((a, b) => b.score - a.score);
+  
+          // Remove the lowest score if the leaderboard exceeds the limit
+          if (entries.length > 3) {
+            const lowestEntry = entries.pop();
+            await deleteDoc(doc(leaderboardRef, lowestEntry.id));
+          }
+  
+          // console.log("Leaderboard updated successfully!");
+        } else {
+          // console.log("Score did not qualify for the leaderboard.");
+        }
+      }
+    } catch (error) {
+      console.error("Error updating leaderboard:", error);
+    }
+  };
+
   const updateRaidScore = (raidId, raidName, score, playerChar) => {
     setPlayerPersonalHighScores((prevHighScores) => {
       const updatedHighScores = { ...prevHighScores };
   
       if (!updatedHighScores[`player_${raidId}`]) {
         console.log("Couldn't find the raid data. Please notify the developer.");
+        return prevHighScores;
       }
   
       if (score > updatedHighScores[`player_${raidId}`].score) {
@@ -226,12 +290,47 @@ const SaveManager = () => {
         updatedHighScores[`player_${raidId}`].used_passives = selectedPassives;
   
         saveGame(money, player_characters, player_activeSkills, player_ownedPassives, updatedHighScores);
+        
+        // Check leaderboard after updating personal high score
+        if (user && user.displayName) {
+          updateLeaderboard(raidId, {
+            player_id: user.uid,
+            player_name: user.displayName,
+            score,
+            character: playerChar,
+            used_activeSkills: selectedSkills,
+            used_passives: selectedPassives,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          console.log("Anonymous players are not eligible for leaderboard placement.");
+        }
       }
   
       return updatedHighScores;
     });
   };
   
+  const fetchLeaderboard = async (raidId) => {
+    const leaderboardRef = collection(firestore, `leaderboards/${raidId}/entries`);
+  
+    try {
+      // Create a query to fetch leaderboard entries, ordered by score (descending)
+      const leaderboardQuery = query(leaderboardRef, orderBy("score", "desc"));
+      const snapshot = await getDocs(leaderboardQuery);
+  
+      // Create an array to store leaderboard entries
+      let leaderboardEntries = [];
+      snapshot.forEach((doc) => {
+        leaderboardEntries.push({ id: doc.id, ...doc.data() });
+      });
+  
+      // Return the leaderboard entries
+      return leaderboardEntries;
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+    }
+  };
 
   return {
     money,
@@ -248,7 +347,8 @@ const SaveManager = () => {
     updatePlayerOwnedPassives,
     updateRaidScore,
     setSelectedPassives,
-    setSelectedSkills
+    setSelectedSkills,
+    fetchLeaderboard,
   };
 };
 

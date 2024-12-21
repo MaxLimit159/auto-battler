@@ -79,7 +79,7 @@ function App() {
   const [stageData, setStageData] = useState(initialStageData);
   const [raidTotalScore, setRaidTotalScore] = useState(0);
   //Manage and load player data
-  const { money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores, selectedPassives, selectedSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, updateRaidScore, saveGame, setSelectedPassives, setSelectedSkills } = SaveManager();
+  const { money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores, selectedPassives, selectedSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, updateRaidScore, saveGame, setSelectedPassives, setSelectedSkills, fetchLeaderboard } = SaveManager();
 
   const [logs, setLogs] = useState([]); // State to store logs
   useEffect(() => {
@@ -137,7 +137,7 @@ function App() {
   }, [player_characters, player_ownedPassives, updatePlayerOwnedPassives]);
 
   const calculateExperienceForNextLevel = (level) => level * 100;
-  const getLevelUppedStats = (character) => {
+  const getLevelUppedStats = (character, getBaseStats) => {
     const levelMultiplier = 1 + (character.level - 1) * 0.05;
     // Apply the scaling and round down each stat
     character.maxHealth = Math.floor(character.maxHealth * levelMultiplier);
@@ -158,34 +158,37 @@ function App() {
       }
     }
 
-    // Add all equipped passives to the character's passives array
-    if (character.passives && character.playable === true) {
-      for (const [, passiveData] of Object.entries(player_ownedPassives)) {
-        if (passiveData?.equipped && passiveData?.name) {
-          if (!character.passives.includes(passiveData.name)) {
-            character.passives.push(passiveData.name);
+    if (!getBaseStats){
+      // alert('getting');
+      // Add all equipped passives to the character's passives array
+      if (character.passives && character.playable === true) {
+        for (const [, passiveData] of Object.entries(player_ownedPassives)) {
+          if (passiveData?.equipped && passiveData?.name) {
+            if (!character.passives.includes(passiveData.name)) {
+              character.passives.push(passiveData.name);
+            }
           }
         }
       }
-    }
-    if (character.passives.includes("Dual Wield")){
-      character.skills = ['doubleAttack'];
-    }
-    if (character.passives.includes("Magic Barrier")){
-      character.shield += Math.floor(character.maxHealth / 2);
-    }
-    if (character.passives.includes("Archmage Codex")) {
-      const Effect = { ...statusEffects.codexArcaneAssault };
-      if (!character.status_effects) {
-        character.status_effects = [];
+      if (character.passives.includes("Dual Wield")){
+        character.skills = ['doubleAttack'];
       }
-      if (!character.status_effects.some(effect => effect.name === "Arcmage Codex: Arcane Assault")) {
-        character.status_effects.push(Effect);
+      if (character.passives.includes("Magic Barrier")){
+        character.shield += Math.floor(character.maxHealth / 2);
+      }
+      if (character.passives.includes("Archmage Codex")) {
+        const Effect = { ...statusEffects.codexArcaneAssault };
+        if (!character.status_effects) {
+          character.status_effects = [];
+        }
+        if (!character.status_effects.some(effect => effect.name === "Arcmage Codex: Arcane Assault")) {
+          character.status_effects.push(Effect);
+        }
       }
     }
     return character;
   };
-  const createCharacter = (name, level = 1, experience = 0, enemy_type) => {
+  const createCharacter = (name, level = 1, experience = 0, enemy_type, getBaseStats = false) => {
     // Clone the base character from the baseCharacterList
     const baseCharacter = {...baseCharacterList[name]};
   
@@ -196,7 +199,7 @@ function App() {
     // Set initial level
     const character = { ...baseCharacter, level, experience, ...(enemy_type !== undefined && { enemy_type })};
     //Return the character with the proper stats based on the given level
-    return getLevelUppedStats(character);
+    return getLevelUppedStats(character, getBaseStats);
   };
 
   //Varriables to pass over to Attack.js
@@ -208,6 +211,7 @@ function App() {
   const [currentPlayerId, setCurrentPlayerId] = useState();
 
   const [selectedRaid, setSelectedRaid] = useState(null);
+  const [selectedLeaderboard, setSelectedLeaderboard] = useState(null);
 
   //Timer for next battle states
   const [countdown, setCountdown] = useState(5);  // Timer starting at 5 seconds
@@ -448,21 +452,21 @@ const handleUnequipPassive = (passiveId) => {
 };
 
 //Constantly update the state to show the saved data
-useEffect(() => {
-  const equippedSkills = Object.keys(player_activeSkills).filter(
-    (skillId) => player_activeSkills[skillId]?.equipped
-  );
-  setSelectedSkills(equippedSkills);
+// useEffect(() => {
+//   const equippedSkills = Object.keys(player_activeSkills).filter(
+//     (skillId) => player_activeSkills[skillId]?.equipped
+//   );
+//   setSelectedSkills(equippedSkills);
 
-  const equippedPassives = Object.keys(player_ownedPassives)
-    .filter((passiveId) => player_ownedPassives[passiveId]?.equipped)
-    .map((passiveId) => ({
-      id: passiveId,
-      name: player_ownedPassives[passiveId]?.name
-    }));
-  setSelectedPassives(equippedPassives);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [player_activeSkills, player_ownedPassives]);
+//   const equippedPassives = Object.keys(player_ownedPassives)
+//     .filter((passiveId) => player_ownedPassives[passiveId]?.equipped)
+//     .map((passiveId) => ({
+//       id: passiveId,
+//       name: player_ownedPassives[passiveId]?.name
+//     }));
+//   setSelectedPassives(equippedPassives);
+//   // eslint-disable-next-line react-hooks/exhaustive-deps
+// }, [player_activeSkills, player_ownedPassives]);
 
 //Get details of the enemy in SelectStage
 const getEnemyDetails = (enemyName, level) => {
@@ -546,10 +550,11 @@ const togglePassivesExpand = (side) => {
 
 const handleRootClick = (event) => {
   // Check if the clicked element is not inside a modal
-  if (!event.target.closest('.modal') && !event.target.closest('.modal-open-button') && !event.target.closest('.user-stats-display')) {
+  if (!event.target.closest('.modal') && !event.target.closest('.modal-open-button') && !event.target.closest('.user-stats-display') && !event.target.closest('leaderboard-modal-content')) {
     // Reset states
     setSelectedStageDetail(null);
     setIsShopOpen(false);
+    setSelectedLeaderboard(null);
   }
 };
 
@@ -561,8 +566,85 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores]);
 
+const viewLeaderboard = async (stageId) => {
+  const leaderboard = await fetchLeaderboard(stageId);
+  const getSkillName = (skillId) => {
+    const skill = activeSkills.find(skill => skill.id === skillId);
+    return skill ? skill.name : 'Unknown Skill';
+  };
+  const updatedLeaderboard = leaderboard.map(entry => ({
+    ...entry,
+    used_activeSkills: entry.used_activeSkills.map(skillId => getSkillName(skillId)),
+    used_passives: entry.used_passives.map(passive => passive.name),
+  }));
+  setSelectedLeaderboard(updatedLeaderboard);
+};
+
+const [isCharacterDetailsOpen, setIsCharacterDetailsOpen] = useState(false);
+const [characterDetails, setCharacterDetails] = useState(null);
+const viewCharacterDetails = (charId, charLvl, extra_passives = []) => {
+  const char = createCharacter(charId, charLvl, undefined, undefined, true);
+  console.log(extra_passives);
+  char.passives = [...char.passives, ...extra_passives];
+  setCharacterDetails(char);
+  setIsCharacterDetailsOpen(true);
+}
   return (
   <div className="app-container" onClick={handleRootClick}>
+    {isCharacterDetailsOpen && characterDetails && (
+    <div className="character-card-overlay" onClick={(e) => {
+      e.stopPropagation();
+      setIsCharacterDetailsOpen(false);
+    }}>
+      <div className='character-card-modal' onClick={(e) => e.stopPropagation()}>
+          <div className="character-card">
+            {/* Header Section */}
+            <div className="character-header">
+              <img
+                src={characterDetails.image}
+                alt={characterDetails.name}
+                className="character-image"
+              />
+              <div className="character-info">
+                <h3 className="character-name">{characterDetails.name}</h3>
+                <span className="character-level">Level: {characterDetails.level}</span>
+              </div>
+            </div>
+
+            {/* Attributes Section */}
+            <div className="character-attributes">
+              <h4 className="section-title">Attributes</h4>
+              <div className="attributes-grid">
+                <div className="attribute">
+                  <span>HP</span>
+                  <span>{characterDetails.maxHealth}</span>
+                </div>
+                <div className="attribute">
+                  <span>DMG</span>
+                  <span>{characterDetails.damage}</span>
+                </div>
+                <div className="attribute">
+                  <span>SPD</span>
+                  <span>{characterDetails.speed}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Passives Section */}
+            <div className="character-passives">
+              <h4 className="section-title">Passives</h4>
+              <div className="passives-list">
+                {characterDetails.passives.map((passive) => (
+                  <div key={passive.id} className="passive-item">
+                    <span className="passive-name">{passive}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     {isShopOpen && (
       <div className="modal" id="shop-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-content">
@@ -819,13 +901,13 @@ useEffect(() => {
                   <ul>
                     {selectedSkills.map(skillId => {
                       const skill = activeSkills.find(s => s.id === skillId);
-                      return <li key={skillId}>{skill?.name}</li>;
+                      return <li key={skillId}>{skill.name}</li>;
                     })}
                   </ul>
                   <h3>Equipped Passives:</h3>
                   <ul>
-                    {selectedPassives.map(p => {
-                      return <li key={p.id}>{p.name}</li>;
+                    {selectedPassives.map(passive => {
+                      return <li key={passive?.id}>{passive?.name}</li>;
                     })}
                   </ul>
                 </div>
@@ -991,26 +1073,28 @@ useEffect(() => {
             </button>
           </div>
           {selectedStageDetail && (
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content">
-                <h2>{selectedStageDetail.stageName} - Enemy Details</h2>
-                <div className="enemy-list">
-                {Array.from(new Set(selectedStageDetail.enemies.map((enemy) =>
-                    getEnemyDetails(enemy.name, enemy.level)
-                  )))}
+            <div className="outter-modal">
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-content">
+                  <h2>{selectedStageDetail.stageName} - Enemy Details</h2>
+                  <div className="enemy-list">
+                  {Array.from(new Set(selectedStageDetail.enemies.map((enemy) =>
+                      getEnemyDetails(enemy.name, enemy.level)
+                    )))}
+                  </div>
+                  <button
+                    onClick={enemyDetailsClose}
+                    style={{
+                      backgroundColor: 'red',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Close
+                  </button>
                 </div>
-                <button
-                  onClick={enemyDetailsClose}
-                  style={{
-                    backgroundColor: 'red',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Close
-                </button>
               </div>
             </div>
           )}
@@ -1059,10 +1143,25 @@ useEffect(() => {
                 >
                   View Enemies
                 </button>
+                <button
+                  className="modal-open-button"
+                  onClick={() => viewLeaderboard(stage.stageId)}
+                  style={{
+                    cursor: 'pointer',
+                    backgroundColor: 'blue',
+                    color: 'white',
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '5px',
+                  }}
+                >
+                  <i className="fa fa-trophy" style={{ marginRight: '8px' }}></i>
+                  Leaderboard
+              </button>
               </div>
             ))}
             <button onClick={() => setMode("StageSelection")}>
-              Stage Select
+              Normal Stages
             </button>
           </div>
           <button
@@ -1080,26 +1179,71 @@ useEffect(() => {
             Back
           </button>
           {selectedStageDetail && (
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-content">
-                <h2>{selectedStageDetail.stageName} - Enemy Details</h2>
-                <div className="enemy-list">
-                {Array.from(new Set(selectedStageDetail.enemies.map((enemy) =>
-                    getEnemyDetails(enemy.name, enemy.level)
-                  )))}
+            <div className="outter-modal">
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-content">
+                  <h2>{selectedStageDetail.stageName} - Enemy Details</h2>
+                  <div className="enemy-list">
+                  {Array.from(new Set(selectedStageDetail.enemies.map((enemy) =>
+                      getEnemyDetails(enemy.name, enemy.level)
+                    )))}
+                  </div>
+                  <button
+                    onClick={enemyDetailsClose}
+                    style={{
+                      backgroundColor: 'red',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Close
+                  </button>
                 </div>
-                <button
-                  onClick={enemyDetailsClose}
-                  style={{
-                    backgroundColor: 'red',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Close
-                </button>
+              </div>
+            </div>
+          )}
+          {selectedLeaderboard && (
+            <div className="outter-modal">
+              <div
+                className="leaderboard-modal-content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 className="leaderboard-title">Leaderboard</h2>
+                <div className="leaderboard-list">
+                  {selectedLeaderboard.map((entry, index) => {
+                    const character = baseCharacterList[entry.character.id];
+                    return (
+                      <div
+                        key={entry.id}
+                        className={`leaderboard-entry`}
+                      >
+                        <div className={`leaderboard-position position-${index + 1}`}>
+                          {index + 1}
+                        </div>
+                        <div className="leaderboard-player-name">
+                          {entry.player_name || "Anonymous"}
+                        </div>
+                        <div className="leaderboard-score">{entry.score}</div>
+                        <div
+                          className="character-clickable"
+                          onClick={() => viewCharacterDetails(entry.character.id, entry.character.level, entry.used_passives)}
+                        >
+                          <img
+                            src={character.image}
+                            alt={`Character ${entry.character.id}`}
+                          />
+                        </div>
+                        <div className="leaderboard-skills">
+                          <span className="leaderboard-skill-text">
+                            Skills: <b>{entry.used_activeSkills.join(" / ") || "None"}</b>
+                          </span>
+                        </div>
+                      </div>
+                    )})
+                  }
+                </div>
               </div>
             </div>
           )}
