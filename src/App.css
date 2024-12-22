@@ -73,9 +73,8 @@ button:disabled {
   position: fixed;
   top: 50%;
   left: 50%;
-  background-color: white;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: 10px;
   z-index: 9999;
   max-width: 400px;
   width: 100%;
@@ -111,7 +110,9 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   transition: background-color 0.3s ease, transform 0.2s ease;
-  padding: 10px;
+  padding: 5%;
+  max-width: 30px;
+  max-height: 30px;
 }
 
 .character-clickable:hover {
@@ -120,8 +121,10 @@ button:disabled {
 }
 
 .character-clickable img {
-  width: 30px;
-  height: 30px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid white;
   border-radius: 50%;
 }
 
@@ -141,6 +144,33 @@ button:disabled {
   font-size: 1.2rem;
   font-weight: bold;
   margin-top: 0%;
+}
+
+.attributes-grid {
+  display: grid;
+  /* grid-template-columns: repeat(2, 1fr); */
+  gap: 8px;
+}
+
+.attribute {
+  display: flex;
+  justify-content: space-between;
+}
+
+.passives-list {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+}
+
+.passive-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.passive-name {
+  overflow: hidden;
 }
 
 /* Character Selection Styles */
@@ -197,6 +227,10 @@ button:disabled {
   margin: 10px 0;
 }
 
+.character-passives {
+  margin-top: 10px;
+}
+
 /* End Battle Styles */
 .end-battle {
   margin-top: 20px;
@@ -221,12 +255,16 @@ button:disabled {
   position: fixed;
   top: 10px;
   right: 10px;
-  background-color: white;
+  background-color: none;
   color: black;
   padding: 10px;
   border-radius: 5px;
   text-align: center;
   z-index: 1000;
+}
+
+.user-stats-display.visible {
+  background: white;
 }
 
 .user-stats-display button {
@@ -321,13 +359,15 @@ button:disabled {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
   background: white;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   animation: popUp 0.1s ease-out forwards;
+  width: 800px;
+  max-width: 100%;
+  max-height: 70%;
 }
 
 .leaderboard-title {
@@ -354,14 +394,14 @@ button:disabled {
   border-radius: 8px;
   background-color: #f9f9f9;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  gap: 10px;
+  gap: 2%;
 }
 
 .leaderboard-position {
   font-size: 18px;
   font-weight: bold;
   color: #3c8dbc;
-  width: 50px;
+  width: 10%;
 }
 
 @keyframes gradientAnimation {
@@ -378,31 +418,21 @@ button:disabled {
 
 .position-1 {
   background: linear-gradient(270deg, gold, red, orange);
-  background-size: 400% 400%;
-  -webkit-text-fill-color: transparent;
-  -webkit-background-clip: text;
-  animation: gradientAnimation 3s ease infinite;
-  font-size: 1.5rem; /* Example font size */
-  font-weight: bold;
 }
 
 .position-2 {
   background: linear-gradient(270deg, silver, gray, white);
-  background-size: 400% 400%;
-  -webkit-text-fill-color: transparent;
-  -webkit-background-clip: text;
-  animation: gradientAnimation 3s ease infinite;
-  font-size: 1.5rem; /* Example font size */
-  font-weight: bold;
 }
 
 .position-3 {
   background: linear-gradient(270deg, rgb(156, 56, 36), brown, darkorange);
+}
+
+.position-1, .position-2, .position-3 {
   background-size: 400% 400%;
   -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
   animation: gradientAnimation 3s ease infinite;
-  font-size: 1.5rem; /* Example font size */
   font-weight: bold;
 }
 
@@ -414,42 +444,14 @@ button:disabled {
   border-radius: 5px;
 }
 
-.attributes-grid {
-  display: grid;
-  /* grid-template-columns: repeat(2, 1fr); */
-  gap: 8px;
-}
-
-.attribute {
-  display: flex;
-  justify-content: space-between;
-}
-
-.character-passives {
-  margin-top: 10px;
-}
-
-.passives-list {
-  display: flex;
-  gap: 15px;
-  overflow-x: auto;
-}
-
-.passive-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.passive-name {
-  overflow: hidden;
-}
-
 .leaderboard-player-name {
   font-size: 16px;
   font-weight: bold;
   color: #555;
-  width: 150px;
+  width: 30%;
+  white-space: nowrap; /* Prevent text from wrapping to the next line */
+  overflow: hidden; /* Hide any text that overflows the container */
+  text-overflow: ellipsis;
 }
 
 .leaderboard-score {
@@ -457,13 +459,19 @@ button:disabled {
   font-weight: bolder;
   width: 70px;
   text-align: center;
+  width: 10%;
 }
 
-.leaderboard-skills,
-.leaderboard-passives {
+.leaderboard-character {
+  display: flex;
+  justify-content: center;
+  width: 10%;
+}
+
+.leaderboard-skills {
   font-size: 14px;
   color: #555;
-  width: 200px;
+  width: 25%;
 }
 
 .leaderboard-skill-text,
@@ -567,7 +575,7 @@ button:disabled {
 
 #close-button {
   background-color: #f0f0f0;
-  color: #333;
+  color: grey;
   border: 1px solid #ccc;
 }
 
@@ -763,11 +771,10 @@ button:disabled {
 
 /* Expand Button */
 .expand-button {
-  display: none; /* Hidden by default */
+  display: inline-block;
   margin-top: 10px;
-  font-size: 8px;
   padding: 5px 10px;
-  background-color: #007bff;
+  background-color: black;
   color: white;
   border: none;
   border-radius: 5px;
@@ -776,7 +783,19 @@ button:disabled {
 }
 
 .expand-button:hover {
-  background-color: #0056b3;
+  background-color: grey;
+}
+
+.character-passives {
+  max-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: max-height 0.3s ease, visibility 0.3s ease;
+}
+
+.character-passives.expanded {
+  max-height: 500px;
+  visibility: visible;
 }
 
 /* Responsive Design */
@@ -864,20 +883,8 @@ button:disabled {
     font-size: clamp(10px, 1vw, 14px);
   }
 
-  .character-passives {
-    max-height: 0;
-    overflow: hidden;
-    visibility: hidden;
-    transition: max-height 0.3s ease, visibility 0.3s ease;
-  }
-
-  .character-passives.expanded {
-    max-height: 500px;
-    visibility: visible;
-  }
-
   .expand-button {
-    display: inline-block;
+    font-size: 8px;
   }
 }
 

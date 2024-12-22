@@ -2,7 +2,7 @@ export const activeSkills = [
     {
       id: 'skillHeal',
       name: 'Heal',
-      description: "Heals 10% of your character's max health.\n5 seconds cooldown.",
+      description: "Heals 10% of your character's max health.",
       cooldown: 6,
       // player, "Enemy", player.damage, enemy, playerPassives, enemyPassives, setEnemy, setEnemyHealthColor, setPlayer, setPlayerHealthColor, updateMoney, updateCharacterLevel, endGame, gameEnded;
       useSkill: function (doDamage, doHeal, inflictStatusEffects, ...args) {
