@@ -16,9 +16,23 @@ const AccountSettings = ({ user, setUser }) => {
     setOldPassword("");
     setNewDisplayName("");
   }
+
+  const clearMessages = () => {
+    setTimeout(() => {
+      setSuccessMessage("");
+      setErrorMessage("");
+    }, 4000);
+  }
+
   const handleUpdateDisplayName = async () => {
     try {
       const user = auth.currentUser;
+
+      if(user.displayName === newDisplayName) {
+        setErrorMessage("You are already using this name.");
+        clearMessages();
+        return
+      }
 
       if (newDisplayName) {
         await updateProfile(user, { displayName: newDisplayName });
@@ -32,6 +46,8 @@ const AccountSettings = ({ user, setUser }) => {
     
     //Clear all the fields
     clearAllFields();
+
+    clearMessages();
   };
 
   const handleUpdatePassword = async () => {
@@ -41,6 +57,14 @@ const AccountSettings = ({ user, setUser }) => {
       // Ensure both old and new passwords are provided
       if (!oldPassword || !newPassword) {
         setErrorMessage("Please fill out both fields.");
+        clearMessages();
+        return;
+      }
+
+      // Ensure both old and new passwords are different
+      if (oldPassword === newPassword) {
+        setErrorMessage("Both passwords are the same.");
+        clearMessages();
         return;
       }
   
@@ -57,7 +81,6 @@ const AccountSettings = ({ user, setUser }) => {
       setSuccessMessage("Password updated successfully!");
       setErrorMessage(""); // Clear any previous error messages
 
-      // Remove the success message after 5 seconds
       setTimeout(() => {
         setSuccessMessage("");
       }, 4000);
@@ -70,7 +93,6 @@ const AccountSettings = ({ user, setUser }) => {
         setErrorMessage("Error updating password: " + error.message);
       }
 
-      // Remove the error message after 5 seconds
       setTimeout(() => {
         setErrorMessage("");
       }, 4000);
@@ -78,6 +100,8 @@ const AccountSettings = ({ user, setUser }) => {
 
     //Clear all the fields
     clearAllFields();
+
+    clearMessages();
   };
 
   const handleLogOut = async () => {
@@ -92,12 +116,12 @@ const AccountSettings = ({ user, setUser }) => {
 
   return (
     <div>
-      <i className="fa fa-cog" onClick={() => setIsModalOpen(true)}></i>
+      <i className="fa fa-cog" onClick={() => {setIsModalOpen(true); setCurrentView('main');}}></i>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
+        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
             {/* Main Menu */}
             {currentView === "main" && (
               <>

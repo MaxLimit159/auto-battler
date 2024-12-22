@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { statusEffects } from './statusEffects.js';
-import { animations } from './animations'
+import { animations } from './charactersFiles/animations.js'
 import { activeSkills } from './activeSkills.js';
 import { characterList } from './charactersFiles/characters.js';
 const baseCharacterList = JSON.parse(JSON.stringify(characterList));
