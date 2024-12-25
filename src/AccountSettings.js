@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import 'font-awesome/css/font-awesome.min.css';
 import { auth, updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "./firebase";
 
-const AccountSettings = ({ user, setUser }) => {
+const AccountSettings = ({ user, setUser, darkMode, updateDarkMode }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState("main");
   const [newDisplayName, setNewDisplayName] = useState("");
@@ -10,6 +10,19 @@ const AccountSettings = ({ user, setUser }) => {
   const [newPassword, setNewPassword] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    document.body.classList.toggle('dark-mode');
+    updateDarkMode(!darkMode);
+  };
   
   const clearAllFields = () => {
     setNewPassword("");
@@ -142,6 +155,7 @@ const AccountSettings = ({ user, setUser }) => {
                     </button>
                   </>
                 )}
+                <button onClick={toggleDarkMode}>{darkMode ? 'Switch to light mode' : 'Switch to dark mode'}</button>
                 <button onClick={handleLogOut}>Log Out</button>
                 <button onClick={() => setIsModalOpen(false)}>Close</button>
               </>

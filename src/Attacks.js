@@ -792,18 +792,12 @@ function Attack({
       </div>
     </div>
     <div
-    style={{
-      maxHeight: '200px',
-      overflowY: 'auto',
-      border: '1px solid #ccc',
-      padding: '10px',
-      backgroundColor: '#f9f9f9',
-    }}
+    className='battle-logs-container'
     >
       {logs.length === 0 ? (
         <></>
       ) : (
-        logs.map((log, index) => <p key={index} style={{ margin: 0 }}>{log}</p>)
+        logs.map((log, index) => <p className='battle-logs' key={index}>{log}</p>)
       )}
     </div>
   </>

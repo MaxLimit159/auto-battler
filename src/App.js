@@ -79,7 +79,7 @@ function App() {
   const [stageData, setStageData] = useState(initialStageData);
   const [raidTotalScore, setRaidTotalScore] = useState(0);
   //Manage and load player data
-  const { money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores, selectedPassives, selectedSkills, updateMoney, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, updateRaidScore, saveGame, setSelectedPassives, setSelectedSkills, fetchLeaderboard } = SaveManager();
+  const { money, darkMode, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores, selectedPassives, selectedSkills, updateMoney, updateDarkMode, updateCharacterLevel, updatePlayerActiveSkills, updatePlayerOwnedPassives, updateRaidScore, saveGame, setSelectedPassives, setSelectedSkills, fetchLeaderboard } = SaveManager();
 
   const [logs, setLogs] = useState([]); // State to store logs
   useEffect(() => {
@@ -502,10 +502,10 @@ function App() {
   const [user, setUser] = useState(null); // Track the current user
   useEffect(() => {
     if (user) {
-      saveGame(money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores);
+      saveGame(money, darkMode, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [money, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores]);
+  }, [money, darkMode, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores]);
 
   const [isCharacterDetailsOpen, setIsCharacterDetailsOpen] = useState(false);
   const [characterDetails, setCharacterDetails] = useState(null);
@@ -678,7 +678,7 @@ function App() {
             </div>
             {user ? (
               <div className='user-settings-display'>
-                <AccountSettings user={user} setUser={setUser} />
+                <AccountSettings user={user} setUser={setUser} darkMode={darkMode} updateDarkMode={updateDarkMode} />
               </div>
             ) : (<></>)}
           </>
@@ -733,29 +733,14 @@ function App() {
                     </label>
                   </div>
                   <button
+                    className='stage-select-button'
                     onClick={() => selectStage(index)}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: 'green',
-                      color: 'white',
-                      padding: '10px',
-                      border: 'none',
-                      borderRadius: '5px',
-                    }}
                   >
                     Select Stage
                   </button>
                   <button
                     className='modal-open-button'
                     onClick={() => setSelectedStageDetail(stage)}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: 'blue',
-                      color: 'white',
-                      padding: '10px',
-                      border: 'none',
-                      borderRadius: '5px',
-                    }}
                   >
                     View Enemies
                   </button>
@@ -829,29 +814,14 @@ function App() {
                     Personal best: {player_personalHighScores[`player_${stage.stageId}`] ? player_personalHighScores[`player_${stage.stageId}`].score : 0}
                   </p>
                   <button
+                  className='stage-select-button'
                     onClick={() => selectRaid(index, 'Raid Boss')}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: 'green',
-                      color: 'white',
-                      padding: '10px',
-                      border: 'none',
-                      borderRadius: '5px',
-                    }}
                   >
                     Select Stage
                   </button>
                   <button
                     className='modal-open-button'
                     onClick={() => setSelectedStageDetail(stage)}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: 'blue',
-                      color: 'white',
-                      padding: '10px',
-                      border: 'none',
-                      borderRadius: '5px',
-                    }}
                   >
                     View Enemies
                   </button>
@@ -922,7 +892,7 @@ function App() {
               {/* Enemy Character Info */}
                 <Character side={"enemy"} characterAnimation={enemyAnimation} character={enemy} characterHealthColor={enemyHealthColor} getPassiveDescription={getPassiveDescription} calculateExperienceForNextLevel={calculateExperienceForNextLevel}/>
               </div>
-              <p>{turn === 'Player' ? 'Waiting for player...' : 'Waiting for enemy...'}</p>
+              <p className='turn-await-message'>{turn === 'Player' ? 'Waiting for player...' : 'Waiting for enemy...'}</p>
               {battleAgain && (
                 <div className="battle-again-container">
                   <button className="battle-again-button" onClick={toggleBattleAgain}>
@@ -990,18 +960,12 @@ function App() {
             )}
             <h3>Battle logs:</h3>
             <div
-              style={{
-                maxHeight: '200px',
-                overflowY: 'auto',
-                border: '1px solid #ccc',
-                padding: '10px',
-                backgroundColor: '#f9f9f9',
-              }}
+              className='battle-logs-container'
             >
               {logs.length === 0 ? (
                 <></>
               ) : (
-                logs.map((log, index) => <p key={index} style={{ margin: 0 }}>{log}</p>)
+                logs.map((log, index) => <p className='battle-logs' key={index}>{log}</p>)
               )}
             </div>
             <button onClick={restartGame}>Return</button>

@@ -4,6 +4,7 @@ import { doc, collection, setDoc, getDocs, updateDoc, query, orderBy, deleteDoc,
 
 const defaultSaveData = {
   money: 0,
+  darkMode: false,
   player_characters: {
     knight: { level: 1, experience: 0, isUnlocked: true},
     rogue: { level: 1, experience: 0, isUnlocked: true},
@@ -28,6 +29,7 @@ const defaultSaveData = {
   player_personalHighScores: {
     player_theLichRaid: {id: 'theLichRaid', name: 'The Lich', score: 0, used_character: [], used_activeSkills: [], used_passives: []},
   }
+  // Remember to add the new field to the useEffect in App.js
 };
 //Personal note: when adding a new field run the code "updateAllDocuments();" to update all existing data and add the new field to the useState in App.js
 const SaveManager = () => {
@@ -39,6 +41,7 @@ const SaveManager = () => {
   const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedPassives, setSelectedPassives] = useState([]);
   const [user, setUser] = useState(null);
+  const [darkMode, setDarkMode] = useState(defaultSaveData.darkMode);
 
 const mergeWithDefaults = (defaults, existing) => {
   // If existing data is completely missing, return defaults
@@ -99,17 +102,24 @@ const updateAllDocuments = async () => {
   }, []);
 
   // Save data to localStorage
-  const saveGame = async (moneyToSave, charactersToSave, skillsToSave, passivesToSave, highscoresToSave) => {
+  const saveGame = async (moneyToSave, darkModeToSave, charactersToSave, skillsToSave, passivesToSave, highscoresToSave) => {
+    // console.log("Saving game with the following data:");
+    // console.log("Money:", moneyToSave);
+    // console.log("Dark Mode:", darkModeToSave);
+    // console.log("Characters:", charactersToSave);
+    // console.log("Skills:", skillsToSave);
+    // console.log("Passives:", passivesToSave);
+    // console.log("Highscores:", highscoresToSave);
     try {
       const userSaveRef = doc(firestore, "gameSaves", user.uid);
       const currentSave = await getDoc(userSaveRef);
       const currentData = currentSave.exists() ? currentSave.data() : {};
   
-      if (JSON.stringify(currentData) === JSON.stringify({ money: moneyToSave, player_characters: charactersToSave, player_activeSkills: skillsToSave, player_ownedPassives: passivesToSave, player_personalHighScores: highscoresToSave })) {
+      if (JSON.stringify(currentData) === JSON.stringify({ money: moneyToSave, darkMode: darkModeToSave, player_characters: charactersToSave, player_activeSkills: skillsToSave, player_ownedPassives: passivesToSave, player_personalHighScores: highscoresToSave })) {
         // console.log("No changes detected. Skipping save.");
         return;
       }
-      await setDoc(userSaveRef, { money: moneyToSave, player_characters: charactersToSave, player_activeSkills: skillsToSave, player_ownedPassives: passivesToSave, player_personalHighScores: highscoresToSave });
+      await setDoc(userSaveRef, { money: moneyToSave, darkMode: darkModeToSave, player_characters: charactersToSave, player_activeSkills: skillsToSave, player_ownedPassives: passivesToSave, player_personalHighScores: highscoresToSave });
       console.log("Game saved successfully!");
     } catch (error) {
       console.error("Error saving game:", error);
@@ -122,6 +132,7 @@ const updateAllDocuments = async () => {
       // No user logged in, load default save data
       console.log("No user logged in. Loading default save...");
       setMoney(defaultSaveData.money);
+      setDarkMode(defaultSaveData.darkMode);
       setCharacters(defaultSaveData.player_characters);
       setPlayerActiveSkills(defaultSaveData.player_activeSkills);
       setPlayerOwnedPassives(defaultSaveData.player_ownedPassives);
@@ -141,6 +152,7 @@ const updateAllDocuments = async () => {
         const parsedData = savedData.data();
         // Check for missing or undefined data and fall back to default values
         setMoney(parsedData.money ?? defaultSaveData.money);
+        setDarkMode(parsedData.darkMode ?? defaultSaveData.darkMode);
         setCharacters(parsedData.player_characters ?? defaultSaveData.player_characters);
         setPlayerActiveSkills(parsedData.player_activeSkills ?? defaultSaveData.player_activeSkills);
         setPlayerOwnedPassives(parsedData.player_ownedPassives ?? defaultSaveData.player_ownedPassives);
@@ -159,7 +171,7 @@ const updateAllDocuments = async () => {
         setSelectedPassives(equippedPassives);
       } else {
         console.log("No save data found. Initializing default save...");
-        saveGame(defaultSaveData.money, defaultSaveData.player_characters, defaultSaveData.player_activeSkills, defaultSaveData.player_ownedPassives, defaultSaveData.player_personalHighScores); // Create a new save if none exists
+        saveGame(defaultSaveData.money, defaultSaveData.darkMode, defaultSaveData.player_characters, defaultSaveData.player_activeSkills, defaultSaveData.player_ownedPassives, defaultSaveData.player_personalHighScores); // Create a new save if none exists
       }
     } catch (error) {
       console.error("Error loading save data:", error);
@@ -176,10 +188,15 @@ const updateAllDocuments = async () => {
   const updateMoney = (amount) => {
     setMoney((prevMoney) => {
       const newMoney = prevMoney + amount;
-      saveGame(newMoney, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores);
+      saveGame(newMoney, darkMode, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores);
       return newMoney;
     });
   };
+
+  const updateDarkMode = (newDarkMode) => {
+    setDarkMode(newDarkMode);
+    saveGame(money, newDarkMode, player_characters, player_activeSkills, player_ownedPassives, player_personalHighScores);
+  }
 
   // Function to modify character progressions and save the game
   const updateCharacterLevel = (characterId, newLevel, newExperience, newIsUnlocked) => {
@@ -190,7 +207,7 @@ const updateAllDocuments = async () => {
         if (newExperience !== undefined) updatedCharacters[characterId].experience = newExperience;
         if (newIsUnlocked !== undefined) updatedCharacters[characterId].isUnlocked = newIsUnlocked;
 
-        saveGame(money, updatedCharacters, player_activeSkills, player_ownedPassives, player_personalHighScores);
+        saveGame(money, darkMode, updatedCharacters, player_activeSkills, player_ownedPassives, player_personalHighScores);
       }
       return updatedCharacters;
     });
@@ -203,7 +220,7 @@ const updateAllDocuments = async () => {
       if (updatedPlayerActiveSkills[activeSkillId]) {
         if (newIsUnlocked !== undefined) updatedPlayerActiveSkills[activeSkillId].isUnlocked = newIsUnlocked;
         if (newEquipped !== undefined) updatedPlayerActiveSkills[activeSkillId].equipped = newEquipped;
-        saveGame(money, player_characters, updatedPlayerActiveSkills, player_ownedPassives, player_personalHighScores);
+        saveGame(money, darkMode, player_characters, updatedPlayerActiveSkills, player_ownedPassives, player_personalHighScores);
       }
       return updatedPlayerActiveSkills;
     });
@@ -217,7 +234,7 @@ const updateAllDocuments = async () => {
         if (newIsUnlocked !== undefined) updatedPlayerOwnedPassives[passiveId].isUnlocked = newIsUnlocked;
         if (newEquipped !== undefined) updatedPlayerOwnedPassives[passiveId].equipped = newEquipped;
         if (newIsObtained !== undefined) updatedPlayerOwnedPassives[passiveId].isObtained = newIsObtained;
-        saveGame(money, player_characters, player_activeSkills, updatedPlayerOwnedPassives, player_personalHighScores);
+        saveGame(money, darkMode, player_characters, player_activeSkills, updatedPlayerOwnedPassives, player_personalHighScores);
       }
       return updatedPlayerOwnedPassives;
     });
@@ -289,7 +306,7 @@ const updateAllDocuments = async () => {
         updatedHighScores[`player_${raidId}`].used_activeSkills = selectedSkills;
         updatedHighScores[`player_${raidId}`].used_passives = selectedPassives;
   
-        saveGame(money, player_characters, player_activeSkills, player_ownedPassives, updatedHighScores);
+        saveGame(money, darkMode, player_characters, player_activeSkills, player_ownedPassives, updatedHighScores);
         
         // Check leaderboard after updating personal high score
         if (user && user.displayName) {
@@ -334,6 +351,7 @@ const updateAllDocuments = async () => {
 
   return {
     money,
+    darkMode,
     player_characters,
     player_activeSkills,
     player_ownedPassives,
@@ -342,6 +360,7 @@ const updateAllDocuments = async () => {
     selectedSkills,
     saveGame,
     updateMoney,
+    updateDarkMode,
     updateCharacterLevel,
     updatePlayerActiveSkills,
     updatePlayerOwnedPassives,

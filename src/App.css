@@ -1,3 +1,89 @@
+/* Dark Mode Styles */
+
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+body.dark-mode h1 {
+  color: #ffffff;
+}
+
+body.dark-mode .character-item,
+body.dark-mode .character-item-start {
+  background-color: #000000;
+}
+
+body.dark-mode .container {
+  background-color: #1e1e1e;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode button {
+  background-color: #333;
+  color: #e0e0e0;
+}
+
+body.dark-mode button:hover {
+  background-color: #555;
+}
+
+body.dark-mode .modal-open-button {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .character-card {
+  background-color: #333;
+}
+
+body.dark-mode .user-stats-display,
+body.dark-mode .user-settings-display .modal {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+}
+
+body.dark-mode .modal {
+  background-color: #1e1e1e;
+}
+
+body.dark-mode .leaderboard-modal-content {
+  background-color: #1e1e1e;
+}
+
+body.dark-mode .expand-button {
+  background-color: #333;
+  color: #e0e0e0;
+}
+
+body.dark-mode .expand-button:hover {
+  background-color: #555;
+}
+
+body.dark-mode .enemy-details h2 {
+  color: #ffffff;
+}
+
+body.dark-mode .enemy-details p {
+  color: #e0e0e0;
+}
+
+body.dark-mode .leaderboard-title {
+  color: #e0e0e0;
+}
+
+body.dark-mode .leaderboard-score {
+  color: #1e1e1e;
+}
+
+body.dark-mode .battle-logs-container {
+  background-color: #333;
+  border: 1px solid #555;
+}
+
+body.dark-mode .battle-logs {
+  color: #e0e0e0;
+}
+
 /* General Styles */
 html {
   user-select: none;
@@ -222,7 +308,7 @@ button:disabled {
   justify-content: space-between;
 }
 
-.battle-menu p {
+.turn-await-message {
   font-size: 18px;
   margin: 10px 0;
 }
@@ -573,6 +659,24 @@ button:disabled {
   overflow-y: auto;
 }
 
+.modal-open-button{
+  cursor: pointer;
+  background-color: blue;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+}
+
+.stage-select-button  {
+  cursor: pointer;
+  background-color: green;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+}
+
 #close-button {
   background-color: #f0f0f0;
   color: grey;
@@ -798,6 +902,19 @@ button:disabled {
   visibility: visible;
 }
 
+.battle-logs-container {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+  background-color: #f9f9f9;
+}
+
+.battle-logs {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #333;
+}
 /* Responsive Design */
 @media (max-width: 768px) {
   .app-container {
