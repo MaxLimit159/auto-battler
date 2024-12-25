@@ -64,7 +64,7 @@ export default function Leaderboard ({stageId, viewCharacterDetails, fetchLeader
 					</div>
 				</div>
 			)}
-			<button onClick={() => viewLeaderboard(stageId)}>
+			<button className='modal-open-button' onClick={() => viewLeaderboard(stageId)}>
 				<i className="fa fa-trophy" style={{ marginRight: '8px' }}></i>
 				Leaderboard
 			</button>
