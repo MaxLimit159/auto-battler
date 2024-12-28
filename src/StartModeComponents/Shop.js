@@ -22,14 +22,14 @@ const shopItems = [
 	{ id: 2, name: "Recruit the Archer", character_id: 'archer', cost: 3000 },
 	{ id: 3, name: "Unlock Heal", skill_id: 'skillHeal', cost: 0 },
 	{ id: 4, name: "Unlock Fireball", skill_id: 'skillFireball', cost: 0 },
-	{ id: 5, name: "Unlock Poison", skill_id: 'skillPoison', cost: 0 },
-	{ id: 6, name: "Unlock Damage Up", skill_id: 'skillDamageUp', cost: 0 },
-	{ id: 7, name: "Buy Soul Absorption", passive_name:'Soul Absorption', passive_id: 'passiveSoulAbsorption', requirement: 'Drops from the Necromancer.', cost: 0 },
-	{ id: 8, name: "Buy Bulwark", passive_name:'Bulwark', passive_id: 'passiveBulwark', requirement: 'Achieve level 10 on Knight.', cost: 0 },
-	{ id: 9, name: "Buy Dual Wield", passive_name:'Dual Wield', passive_id: 'passiveDualWield', requirement: 'Achieve level 10 on Rogue.', cost: 0 },
-	{ id: 10, name: "Buy Arcane Infused", passive_name:'Arcane Infused', passive_id: 'passiveArcaneInfused', requirement: 'Achieve level 10 on Mage.', cost: 0 },
-	{ id: 11, name: "Buy Life Steal", passive_name:'Life Steal', passive_id: 'passiveLifeSteal', requirement: 'Achieve level 10 on Vampire.', cost: 0 },
-	{ id: 12, name: "Buy Poison Tip", passive_name:'Poison Tip', passive_id: 'passivePoisonTip', requirement: 'Achieve level 10 on Archer.', cost: 0 },
+	{ id: 5, name: "Unlock Poison", skill_id: 'skillPoison', cost: 2000 },
+	{ id: 6, name: "Unlock Damage Up", skill_id: 'skillDamageUp', cost: 3000 },
+	{ id: 7, name: "Buy Soul Absorption", passive_name:'Soul Absorption', passive_id: 'passiveSoulAbsorption', requirement: 'Drops from the Necromancer.', cost: 4000 },
+	{ id: 8, name: "Buy Bulwark", passive_name:'Bulwark', passive_id: 'passiveBulwark', requirement: 'Achieve level 10 on Knight.', cost: 3000 },
+	{ id: 9, name: "Buy Dual Wield", passive_name:'Dual Wield', passive_id: 'passiveDualWield', requirement: 'Achieve level 10 on Rogue.', cost: 3000 },
+	{ id: 10, name: "Buy Arcane Infused", passive_name:'Arcane Infused', passive_id: 'passiveArcaneInfused', requirement: 'Achieve level 10 on Mage.', cost: 3000 },
+	{ id: 11, name: "Buy Life Steal", passive_name:'Life Steal', passive_id: 'passiveLifeSteal', requirement: 'Achieve level 10 on Vampire.', cost: 3000 },
+	{ id: 12, name: "Buy Poison Tip", passive_name:'Poison Tip', passive_id: 'passivePoisonTip', requirement: 'Achieve level 10 on Archer.', cost: 3000 },
 ];
 return (
 	<div className="modal" id="shop-modal" onClick={(e) => e.stopPropagation()}>

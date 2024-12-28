@@ -128,7 +128,7 @@ const AccountSettings = ({ user, setUser, darkMode, updateDarkMode }) => {
   };
 
   return (
-    <div>
+    <>
       <i className="fa fa-cog" onClick={() => {setIsModalOpen(true); setCurrentView('main');}}></i>
 
       {/* Modal */}
@@ -223,7 +223,7 @@ const AccountSettings = ({ user, setUser, darkMode, updateDarkMode }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 export default AccountSettings;
