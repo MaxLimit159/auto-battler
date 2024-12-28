@@ -93,7 +93,6 @@ const updateAllDocuments = async () => {
 //   updateAllDocuments();
 // }, []);
   
-  // Listen for authentication state changes (same logic as in Authentication.js)
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);

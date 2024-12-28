@@ -29,7 +29,7 @@ body.dark-mode button:hover {
 }
 
 body.dark-mode .modal-open-button {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 1);
 }
 
 body.dark-mode .character-card {
@@ -81,6 +81,10 @@ body.dark-mode .battle-logs-container {
 }
 
 body.dark-mode .battle-logs {
+  color: #e0e0e0;
+}
+
+body.dark-mode .fa-chevron-down, body.dark-mode .fa-chevron-up, body.dark-mode .fa-cog {
   color: #e0e0e0;
 }
 
