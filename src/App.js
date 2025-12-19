@@ -260,6 +260,8 @@ function App() {
     gameEnded.current = false;
     //Due to ascyn, im setting the new index here so when startGame runs again it has the updated index
     let nextIndex = currentEnemyIndex + 1;
+    if(currentEnemyIndex === enemyQueue.length && battleAgain === true)
+      nextIndex = 1;
     setCurrentEnemyIndex(nextIndex);
   }
 
